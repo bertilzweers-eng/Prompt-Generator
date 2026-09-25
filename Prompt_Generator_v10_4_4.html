@@ -1,0 +1,3387 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompt Generator — KAM v10.4.0</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Kleurenpalet — neutraal & professioneel */
+  --accent: #33546F;
+  --accent-mid: #3E6684;
+  --accent-light: #4C7EA0;
+  --accent-success: #5C7A62;
+  --accent-success-dark: #4A6350;
+  --accent-warn: #A9793F;
+  --accent-warn-dark: #8D6432;
+
+  /* Interface Systeem — licht thema */
+  --bg: #F5F6F8;
+  --surface: #ffffff;
+  --surface2: #F7F8FA;
+  --surface3: #EDF0F3;
+  --border: #E3E6EB;
+  --border2: #CFD4DC;
+  --text: #1A2129;
+  --text-secondary: #465061;
+  --muted: #7C8494;
+  --error: #B3423A;
+  --success: var(--accent-success);
+  --diff-a: rgba(169, 121, 63, 0.14);
+  --diff-b: rgba(92, 122, 98, 0.14);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow-sm: 0 1px 2px rgba(16,27,44,0.05);
+  --shadow: 0 2px 8px rgba(16,27,44,0.07);
+  --shadow-lg: 0 8px 24px rgba(16,27,44,0.10);
+  --transition: all 0.16s cubic-bezier(0.4, 0, 0.2, 1);
+  --sidebar-w: 288px;
+  --sidebar-w-collapsed: 76px;
+}
+
+[data-theme="dark"] {
+  --accent-light: #6C9BC0;
+  --bg: #12161C;
+  --surface: #191F27;
+  --surface2: #1E252E;
+  --surface3: #262E39;
+  --border: #2C3542;
+  --border2: #3C4759;
+  --text: #E9ECF1;
+  --text-secondary: #B0B8C4;
+  --muted: #838EA0;
+  --diff-a: rgba(169, 121, 63, 0.20);
+  --diff-b: rgba(92, 122, 98, 0.20);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.25);
+  --shadow: 0 2px 10px rgba(0,0,0,0.32);
+  --shadow-lg: 0 10px 28px rgba(0,0,0,0.4);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.5;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+/* ── APP SHELL ── */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  align-items: stretch;
+}
+
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.sidebar.collapsed { width: var(--sidebar-w-collapsed); }
+.sidebar.collapsed .sidebar-top { padding: 14px 8px; justify-content: center; gap: 10px; }
+.sidebar.collapsed .sidebar-bottom { padding: 12px 8px; }
+.sidebar.collapsed .theme-switch { transform: scale(0.85); }
+
+.sidebar-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.brand { display: flex; align-items: center; gap: 10px; overflow: hidden; white-space: nowrap; }
+.brand-icon { font-size: 20px; flex-shrink: 0; }
+.brand-text { display: flex; flex-direction: column; line-height: 1.2; opacity: 1; width: 140px; transition: opacity 0.14s ease, width 0.24s cubic-bezier(0.4, 0, 0.2, 1); }
+.brand-text b { font-size: 13.5px; font-weight: 700; color: var(--text); }
+.brand-text span { font-size: 10.5px; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+.sidebar.collapsed .brand-text { opacity: 0; width: 0; }
+
+.icon-btn {
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+.icon-btn:hover { color: var(--accent); border-color: var(--accent-light); background: var(--surface3); }
+[data-theme="dark"] .icon-btn:hover { color: var(--accent-light); }
+
+.sidebar-section {
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--border);
+  opacity: 1;
+  max-height: 800px;
+  transition: opacity 0.16s ease, max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.28s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease;
+}
+
+.sidebar-heading {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .sidebar-section {
+  opacity: 0;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-color: transparent;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 0.12s ease, max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1) 0.05s,
+    padding 0.28s cubic-bezier(0.4, 0, 0.2, 1) 0.05s, border-color 0.28s ease;
+}
+
+.sidebar-bottom {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* Thema-schakelaar */
+.theme-switch-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.theme-switch-label { font-size: 12.5px; color: var(--text-secondary); font-weight: 500; white-space: nowrap; overflow: hidden; opacity: 1; max-width: 200px; transition: opacity 0.14s ease, max-width 0.24s ease; }
+.sidebar.collapsed .theme-switch-row { justify-content: center; }
+.sidebar.collapsed .theme-switch-label { opacity: 0; max-width: 0; }
+
+.theme-switch {
+  position: relative;
+  width: 42px; height: 24px;
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  border-radius: 999px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+.theme-switch .knob {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  transition: transform 0.2s ease, background 0.2s ease;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px;
+}
+[data-theme="dark"] .theme-switch .knob { transform: translateX(18px); background: var(--accent-light); }
+
+/* ── MAIN CONTENT ── */
+.main-content {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 32px 80px;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.topbar-title { display: flex; flex-direction: column; gap: 2px; }
+.topbar-title h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); }
+.topbar-title .topbar-sub { font-size: 12.5px; color: var(--muted); }
+
+.sidebar-open-btn { display: none; }
+
+@media (max-width: 880px) {
+  .sidebar { position: fixed; z-index: 40; left: 0; box-shadow: var(--shadow-lg); }
+  .sidebar:not(.mobile-open) { transform: translateX(-100%); width: var(--sidebar-w); }
+  .sidebar.mobile-open { transform: translateX(0); }
+  .sidebar-open-btn { display: flex; }
+  .main-content { padding: 64px 16px 60px; }
+}
+
+/* ── PAGINATITEL (topbar) ── */
+h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); }
+h1 span { color: var(--accent-success); }
+.subtitle { font-size: 12.5px; color: var(--muted); font-weight: 400; }
+
+/* ── MODE SWITCHER ── */
+.mode-switcher {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 5px;
+  box-shadow: var(--shadow-sm);
+}
+
+.mode-btn {
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  letter-spacing: 0.01em;
+}
+
+.mode-btn.active {
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0,44,91,0.22);
+}
+
+.mode-btn:hover:not(.active) {
+  color: var(--accent);
+  background: var(--surface3);
+}
+
+/* ── AUTOPILOT PANEL ── */
+.autopilot-panel {
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--accent-warn);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.autopilot-panel.visible { display: flex; }
+
+.autopilot-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-warn);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.autopilot-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 14px 16px;
+  resize: vertical;
+  min-height: 96px;
+  outline: none;
+  transition: var(--transition);
+  width: 100%;
+  line-height: 1.6;
+}
+
+.autopilot-input:focus {
+  border-color: var(--accent-warn);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(227, 114, 34, 0.1);
+}
+
+.btn-analyze {
+  padding: 10px 22px;
+  background: var(--accent-warn);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #ffffff;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  align-self: flex-start;
+  letter-spacing: 0.01em;
+}
+
+.btn-analyze:hover {
+  background: var(--accent-warn-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(227, 114, 34, 0.3);
+}
+.btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.autopilot-result {
+  display: none;
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 14px 16px;
+  background: rgba(113, 168, 16, 0.07);
+  border: 1px solid rgba(113, 168, 16, 0.2);
+  border-radius: var(--radius-sm);
+  line-height: 1.65;
+}
+
+.autopilot-result.visible { display: block; }
+
+/* ── PROVIDER SELECTOR ── */
+.provider-section {
+  display: none;
+}
+
+/* ── COMPACT API KEY CARD ── */
+.api-compact-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+}
+
+.api-compact-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.api-compact-icon { font-size: 20px; line-height: 1; }
+
+.api-compact-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.api-compact-hint {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.api-compact-hint a { color: var(--accent); text-decoration: underline; }
+
+.api-compact-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 240px;
+  max-width: 420px;
+}
+
+.api-compact-right input {
+  flex: 1;
+  padding: 9px 12px;
+  font-size: 13px;
+}
+
+.provider-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.provider-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.provider-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 14px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--muted);
+  font-family: inherit;
+}
+
+.provider-card:hover {
+  border-color: var(--accent-light);
+  color: var(--accent);
+  background: var(--surface3);
+}
+
+.provider-card.active {
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: 0 0 0 3px rgba(0, 44, 91, 0.07);
+}
+
+.provider-card .p-icon { font-size: 18px; }
+.provider-card .p-name { font-size: 13px; font-weight: 600; color: inherit; }
+.provider-card .p-model { font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+.sidebar .provider-card { padding: 10px 4px; gap: 3px; }
+.sidebar .provider-card .p-name { font-size: 11px; }
+.sidebar .provider-card .p-model { font-size: 8.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+.api-key-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.key-status-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--border2);
+  flex-shrink: 0;
+}
+
+.key-status-dot.has-key { background: var(--success); }
+
+.api-key-hint {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.api-key-hint a { color: var(--accent); text-decoration: underline; font-weight: 500; }
+
+/* ── FORM ── */
+.form-grid {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 32px;
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: 22px;
+}
+
+.field { display: flex; flex-direction: column; gap: 7px; }
+.field select.is-invalid, .field input.is-invalid, .field textarea.is-invalid {
+  border-color: #d64545 !important;
+  box-shadow: 0 0 0 1px #d64545;
+}
+.field-sb { margin-top: 14px; }
+.field-error {
+  display: none;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #d64545;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.field-error.visible { display: block; }
+.field-hint {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1.5;
+}
+
+/* ── Formuliersecties (logische groepering) ── */
+.form-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: -4px;
+}
+.form-section-head .step-no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.form-section-head .step-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.form-section-head .step-sub {
+  font-size: 11.5px;
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ── Contextuele meldingen tussen velden (bijv. afbeelding/ontwerp-type) ── */
+.inline-notice {
+  display: none;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.inline-notice.visible { display: flex; }
+
+/* ── Prompt-blauwdruk (live weergave van wat de AI ontvangt) ── */
+.live-preview {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 12px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-light);
+  border-radius: var(--radius-sm);
+}
+.live-preview-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.live-preview-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+.bp-status { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 99px; border: 1px solid var(--border); color: var(--text-secondary); background: var(--surface); }
+.bp-status.ready { color: var(--accent-success); border-color: var(--accent-success); }
+.bp-status.pending { color: var(--accent-warn); border-color: var(--accent-warn); }
+.bp-rows { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; align-items: baseline; }
+.bp-key { font-size: 11px; font-weight: 700; color: var(--text-secondary); white-space: nowrap; }
+.bp-val { font-size: 12.5px; color: var(--text); line-height: 1.5; min-width: 0; overflow-wrap: anywhere; }
+.bp-val b { font-weight: 600; }
+.bp-val .bp-empty { color: var(--muted); font-style: italic; }
+.bp-val .bp-instr { display: block; color: var(--text-secondary); font-size: 12px; margin-top: 1px; }
+.bp-budget { display: flex; align-items: center; gap: 10px; }
+.bp-bar { flex: 0 0 90px; height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; }
+.bp-bar > i { display: block; height: 100%; background: var(--accent-light); border-radius: 99px; transition: width 0.2s ease; }
+.bp-tip { font-size: 11.5px; color: var(--text-secondary); border-top: 1px dashed var(--border); padding-top: 8px; }
+.bp-tip.warn { color: var(--accent-warn); }
+@media (max-width: 560px) { .bp-rows { grid-template-columns: 1fr; gap: 1px; } .bp-val { margin-bottom: 6px; } }
+
+/* ── Gegevens- en privacycontrole ── */
+.data-safety-panel { margin-top: 14px; padding: 14px 16px; border: 1px solid var(--border); border-left: 3px solid var(--accent-warn); border-radius: var(--radius-sm); background: var(--surface2); }
+.data-safety-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:7px; }
+.data-safety-title { font-size:13px; font-weight:700; color:var(--text); }
+.data-safety-badge { font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--accent-warn-dark); background:rgba(169,121,63,.12); padding:4px 7px; border-radius:999px; white-space:nowrap; }
+.data-safety-copy { font-size:12px; line-height:1.55; color:var(--text-secondary); }
+.data-safety-copy strong { color:var(--text); }
+
+/* ── Contextbeheersing / consistente vervolgvragen ── */
+.consistency-panel {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-success);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  display: grid;
+  gap: 10px;
+}
+.consistency-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.consistency-title { font-size:12px; font-weight:700; color:var(--text); }
+.consistency-badge { font-size:10px; font-weight:700; color:var(--accent-success); border:1px solid var(--accent-success); border-radius:99px; padding:2px 8px; white-space:nowrap; }
+.consistency-copy { font-size:11.5px; color:var(--text-secondary); line-height:1.5; }
+.consistency-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.consistency-option { display:flex; flex-direction:column; gap:5px; }
+.consistency-option label { font-size:10.5px; }
+.consistency-option select { font-size:12.5px; padding:9px 11px; }
+.consistency-checks { display:flex; flex-wrap:wrap; gap:7px 14px; padding-top:2px; }
+.consistency-check { display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--text); cursor:pointer; }
+.consistency-check input { width:15px; height:15px; padding:0; accent-color:var(--accent-success); }
+@media (max-width: 560px) { .consistency-grid { grid-template-columns:1fr; } }
+
+/* ── Profielen & uitvoereisen ── */
+.profile-bar { display: flex; flex-direction: column; gap: 8px; padding: 10px 14px; margin-bottom: 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.pb-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pb-row > label { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); min-width: 74px; }
+.pb-row select { flex: 1 1 160px; min-width: 0; padding: 7px 10px; font-size: 12.5px; }
+.pb-row textarea { flex: 1 1 100%; min-height: 44px; font-size: 12px; padding: 7px 10px; }
+.pb-row .btn-action { padding: 6px 10px; font-size: 11.5px; }
+.eisen-grid { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.eisen-grid label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--text); cursor: pointer; }
+/* ── Versiebeheer ── */
+.version-btn { font: inherit; font-weight: 600; color: var(--accent); background: transparent; border: 1px solid var(--border); border-radius: 99px; padding: 1px 9px; cursor: pointer; }
+[data-theme="dark"] .version-btn { color: var(--accent-light); }
+.version-btn:hover { border-color: var(--accent-light); background: var(--surface3); }
+.cl-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(15,20,25,0.55); display: none; align-items: center; justify-content: center; padding: 20px; }
+.cl-overlay.visible { display: flex; }
+.cl-modal { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); width: min(640px, 100%); max-height: 82vh; display: flex; flex-direction: column; }
+.cl-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); font-weight: 700; }
+.cl-body { overflow-y: auto; padding: 6px 18px 16px; }
+.cl-entry { padding: 12px 0; border-bottom: 1px solid var(--border); }
+.cl-entry:last-child { border-bottom: 0; }
+.cl-ver { font-weight: 700; font-size: 14px; }
+.cl-date { color: var(--muted); font-size: 12px; margin-left: 8px; font-weight: 400; }
+.cl-current { font-size: 10.5px; font-weight: 700; color: var(--accent-success); border: 1px solid var(--accent-success); border-radius: 99px; padding: 0 7px; margin-left: 8px; }
+.cl-entry ul { margin: 8px 0 0; padding-left: 18px; font-size: 12.5px; line-height: 1.55; color: var(--text-secondary); }
+.cl-tag { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 4px; padding: 0 5px; margin-right: 6px; border: 1px solid var(--border); color: var(--text); }
+
+label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+label .req { color: var(--accent-warn); font-size: 13px; }
+
+input, select, textarea {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 12px 14px;
+  transition: var(--transition);
+  outline: none;
+  width: 100%;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent-light);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(0, 44, 91, 0.08);
+}
+[data-theme="dark"] input:focus, [data-theme="dark"] select:focus, [data-theme="dark"] textarea:focus {
+  box-shadow: 0 0 0 3px rgba(58, 141, 224, 0.18);
+}
+
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237A8EA8' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+  cursor: pointer;
+  appearance: none;
+}
+
+textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); border: 0;
+}
+
+.toggle-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.toggle-group-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 560px) {
+  .toggle-group-3 { grid-template-columns: 1fr; }
+}
+
+.toggle-option label small {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 500;
+  opacity: 0.75;
+  margin-top: 2px;
+  text-transform: none;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.settings-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.settings-row label {
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.toggle-option label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.toggle-option input[type="radio"]:checked + label {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 44, 91, 0.2);
+}
+
+.toggle-option label:hover:not([style*="background: var(--accent)"]) {
+  border-color: var(--border2);
+  color: var(--text);
+}
+
+.divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+/* ── Doelgroep: hiërarchische schuif vs. specifieke-publiek-lijst ── */
+.doelgroep-slider-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 2px 2px;
+}
+.doelgroep-slider-panel input[type="range"] {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border2);
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.slider-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
+#doelgroepSliderLabel {
+  color: var(--accent-light);
+  font-weight: 700;
+}
+
+.btn-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.btn-generate {
+  padding: 14px 28px;
+  background: var(--accent-success);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 2px 8px rgba(113, 168, 16, 0.28);
+}
+
+.btn-generate:hover {
+  background: var(--accent-success-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(113, 168, 16, 0.35);
+}
+.btn-generate:active { transform: translateY(0); }
+.btn-generate:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-generate:disabled:hover { transform: none; box-shadow: none; }
+
+.btn-generate .spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: none;
+}
+
+.btn-generate.loading .spinner { display: block; }
+
+.btn-reset {
+  padding: 14px 20px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-reset:hover { border-color: var(--error); color: var(--error); background: rgba(192,57,43,0.03); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── RESULT SECTIE ── */
+.result-section {
+  margin-top: 32px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.35s ease-out, transform 0.35s ease-out;
+  pointer-events: none;
+}
+
+.result-section.visible { opacity: 1; transform: translateY(0); pointer-events: all; }
+
+.result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 12px;
+}
+
+.result-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.result-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.btn-action {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.btn-action:hover { border-color: var(--accent); color: var(--accent); background: var(--surface3); }
+.btn-action.copied { border-color: var(--accent-success); color: var(--accent-success); background: rgba(113, 168, 16, 0.05); }
+.btn-action.refine-active { border-color: var(--accent-warn); color: var(--accent-warn); background: rgba(227, 114, 34, 0.05); }
+.btn-action.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-action.primary:hover { background: var(--accent); filter: brightness(1.08); color: #fff; }
+.btn-action.primary.copied { background: var(--accent-success); border-color: var(--accent-success); color: #fff; }
+
+/* ── VARIATIES TABS ── */
+.variaties-toggle {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.var-tab {
+  padding: 10px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+}
+
+.var-tab:hover { color: var(--text); border-color: var(--border2); background: var(--surface3); }
+.var-tab.active { background: var(--accent); border-color: var(--accent); color: #ffffff; }
+
+/* ── PROMPT OUTPUT ── */
+.result-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 26px;
+  font-family: 'DM Mono', monospace;
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: var(--text);
+  white-space: pre-wrap;
+  position: relative;
+  box-shadow: var(--shadow-sm);
+}
+
+.result-box.streaming::after {
+  content: '▋';
+  color: var(--accent-success);
+  animation: blink 0.8s step-end infinite;
+}
+
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* ── Konami-code easter egg ── */
+@keyframes konamiIn {
+  0%   { transform: translate(-50%, -20px); opacity: 0; }
+  12%  { transform: translate(-50%, 0); opacity: 1; }
+  88%  { transform: translate(-50%, 0); opacity: 1; }
+  100% { transform: translate(-50%, -20px); opacity: 0; }
+}
+@keyframes konamiFall {
+  0%   { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+}
+.konami-toast {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  z-index: 9999;
+  transform: translate(-50%, -20px);
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  color: #fff;
+  padding: 14px 22px;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 28px rgba(0, 44, 91, 0.35);
+  font-size: 13.5px;
+  font-weight: 700;
+  text-align: center;
+  animation: konamiIn 3.2s ease forwards;
+  pointer-events: none;
+}
+.konami-toast small {
+  display: block;
+  font-weight: 500;
+  font-size: 11.5px;
+  opacity: 0.9;
+  margin-top: 3px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.konami-emoji {
+  position: fixed;
+  top: 0;
+  font-size: 22px;
+  z-index: 9998;
+  pointer-events: none;
+  animation: konamiFall 2.6s linear forwards;
+}
+
+/* ── REFINE PANEL ── */
+.refine-panel {
+  display: none;
+  margin-top: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--accent-warn);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  gap: 10px;
+  flex-direction: column;
+  box-shadow: var(--shadow-sm);
+}
+
+.refine-panel.visible { display: flex; }
+
+.refine-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--accent-warn);
+}
+
+.refine-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 11px 14px;
+  outline: none;
+  transition: var(--transition);
+  width: 100%;
+}
+.refine-input:focus { border-color: var(--accent-warn); background: #ffffff; box-shadow: 0 0 0 3px rgba(227, 114, 34, 0.08); }
+
+.btn-refine-submit {
+  padding: 9px 20px;
+  background: var(--accent-warn);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #ffffff;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+  align-self: flex-start;
+  letter-spacing: 0.02em;
+}
+.btn-refine-submit:hover { background: var(--accent-warn-dark); transform: translateY(-1px); box-shadow: 0 3px 10px rgba(227,114,34,0.28); }
+
+/* ── KWALITEITSSCORE ── */
+.quality-panel {
+  display: none;
+  margin-top: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  gap: 16px;
+  flex-direction: column;
+  box-shadow: var(--shadow-sm);
+}
+
+.quality-panel.visible { display: flex; }
+
+.quality-header {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quality-scores {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.score-item { display: flex; flex-direction: column; gap: 7px; }
+.score-name { font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.06em; }
+.score-bar-wrap { height: 5px; background: var(--surface3); border-radius: 10px; overflow: hidden; }
+.score-bar { height: 100%; border-radius: 10px; transition: width 0.9s cubic-bezier(0.4,0,0.2,1); background: linear-gradient(90deg, var(--accent-success), var(--accent-light)); }
+.score-val { font-size: 18px; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; }
+
+.quality-tip {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  padding: 14px 18px;
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent);
+  line-height: 1.65;
+}
+
+/* ── DNA DIFF ── */
+.dna-section { display: none; margin-top: 22px; }
+.dna-section.visible { display: block; }
+
+.dna-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.dna-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.dna-selector { display: flex; gap: 7px; }
+
+.dna-pick {
+  padding: 5px 13px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.dna-pick.active-a { border-color: var(--accent-warn); color: var(--accent-warn); background: rgba(227, 114, 34, 0.06); }
+.dna-pick.active-b { border-color: var(--accent-success); color: var(--accent-success-dark); background: rgba(113, 168, 16, 0.06); }
+
+.dna-split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.dna-col { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); }
+
+.dna-col-head { padding: 11px 18px; font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.07em; }
+.dna-col:first-child .dna-col-head { color: var(--accent-warn); background: rgba(227, 114, 34, 0.04); border-bottom: 1px solid rgba(227, 114, 34, 0.12); }
+.dna-col:last-child .dna-col-head { color: var(--accent-success-dark); background: rgba(113, 168, 16, 0.04); border-bottom: 1px solid rgba(113, 168, 16, 0.12); }
+
+.dna-col-body { padding: 18px; font-family: 'DM Mono', monospace; font-size: 12.5px; line-height: 1.75; white-space: pre-wrap; color: var(--text-secondary); }
+.diff-unique-a { background: var(--diff-a); border-radius: 3px; color: #a84808; font-weight: 500; }
+.diff-unique-b { background: var(--diff-b); border-radius: 3px; color: #3d6007; font-weight: 500; }
+
+.dna-legend { display: flex; gap: 18px; margin-top: 10px; font-size: 12px; color: var(--muted); }
+.dna-legend span { display: flex; align-items: center; gap: 7px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+.legend-dot.dot-a { background: var(--accent-warn) !important; opacity: 0.7; }
+.legend-dot.dot-b { background: var(--accent-success) !important; opacity: 0.7; }
+
+/* ── MODEL ARCHITECTUREN ── */
+.model-section { display: none; margin-top: 22px; }
+.model-section.visible { display: block; }
+
+.model-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.model-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.model-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.model-tab {
+  padding: 13px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.model-tab .model-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.model-tab > span:last-child { font-size: 11px; }
+.model-tab:hover { border-color: var(--border2); background: var(--surface3); }
+.model-tab.active { background: var(--surface); border: 2px solid var(--accent); box-shadow: 0 0 0 3px rgba(0,44,91,0.06); }
+.model-tab.active .model-name { color: var(--accent); }
+.model-tab.not-generated { opacity: 0.55; }
+.model-tab.not-generated .model-name { color: var(--muted); }
+
+.model-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  min-height: 80px;
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.model-tip {
+  margin-top: 10px;
+  padding: 12px 16px;
+  background: var(--surface2);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ── HISTORY ── */
+.history-section {
+  margin-top: 32px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.35s, transform 0.35s;
+  pointer-events: none;
+}
+.history-section.visible { opacity: 1; transform: translateY(0); pointer-events: all; }
+
+.history-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.history-list { display: grid; gap: 10px; }
+
+.history-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  box-shadow: var(--shadow-sm);
+}
+.history-item:hover { border-color: var(--accent); transform: translateX(2px); box-shadow: var(--shadow); }
+
+.history-meta { font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 3px; }
+.history-subject { font-size: 13.5px; color: var(--accent); font-weight: 600; margin-bottom: 3px; }
+.history-preview { font-size: 12px; color: var(--muted); line-height: 1.5; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.history-time { font-size: 11px; color: var(--muted); text-align: right; }
+
+.history-footer { display: flex; justify-content: flex-end; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
+.btn-clear-history { background: none; border: none; color: var(--muted); font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer; transition: var(--transition); padding: 6px 8px; min-height: 30px; border-radius: 6px; }
+.btn-clear-history:hover { color: var(--error); background: rgba(0,0,0,0.04); }
+
+.sidebar .history-item { grid-template-columns: 1fr; gap: 3px; padding: 10px 12px; box-shadow: none; }
+.sidebar .history-meta { font-size: 9px; }
+.sidebar .history-subject { font-size: 12px; }
+.sidebar .history-preview { font-size: 11px; -webkit-line-clamp: 2; }
+.sidebar .history-time { text-align: left; font-size: 10px; }
+.sidebar .history-footer { justify-content: flex-start; gap: 10px; }
+.sidebar .btn-clear-history { font-size: 10.5px; }
+
+/* ── SCHEIDINGSLIJNEN ── */
+.section-sep {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 28px 0 20px;
+}
+.section-sep span {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+  white-space: nowrap;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.section-sep::before, .section-sep::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); }
+
+/* ── ERROR ── */
+.error-msg {
+  background: rgba(192, 57, 43, 0.05);
+  border: 1px solid rgba(192, 57, 43, 0.2);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  font-size: 13.5px;
+  color: var(--error);
+  margin-top: 16px;
+  display: none;
+}
+.error-msg.visible { display: block; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .provider-grid, .two-col, .variaties-toggle, .dna-split, .quality-scores, .model-tabs { grid-template-columns: 1fr; }
+  .btn-row { grid-template-columns: 1fr; }
+  .history-item { grid-template-columns: 1fr; gap: 6px; }
+  .history-time { text-align: left; }
+  .result-actions { gap: 6px; }
+  .btn-action { font-size: 11px; padding: 7px 11px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-scroll">
+  <div class="sidebar-top">
+    <div class="brand">
+      <span class="brand-icon">♻</span>
+      <div class="brand-text"><b>Prompt</b><span>KAM Toolbox</span></div>
+    </div>
+    <button class="icon-btn" id="sidebarToggle" title="Zijbalk in-/uitklappen" aria-label="Zijbalk in-/uitklappen">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line id="sidebarToggleLine" x1="9" y1="3" x2="9" y2="21" style="transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);"/></svg>
+    </button>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-heading">AI-provider</div>
+    <div class="sidebar-section-body">
+      <div class="provider-grid">
+        <button class="provider-card active" data-provider="gemini" onclick="selectProvider('gemini', this)">
+          <span class="p-icon">🔷</span>
+          <span class="p-name">Gemini</span>
+          <span class="p-model">gemini-3.5-flash</span>
+        </button>
+        <button class="provider-card" data-provider="groq" onclick="selectProvider('groq', this)">
+          <span class="p-icon">⚡</span>
+          <span class="p-name">Groq</span>
+          <span class="p-model">gpt-oss-120b</span>
+        </button>
+        <button class="provider-card" data-provider="openrouter" onclick="selectProvider('openrouter', this)">
+          <span class="p-icon">🔀</span>
+          <span class="p-name">OpenRouter</span>
+          <span class="p-model">claude-sonnet-5</span>
+        </button>
+      </div>
+      <div class="field-sb">
+        <label style="font-size:12px;font-weight:600;color:var(--text-secondary);"><span id="providerKeyLabel">Google AI Studio</span> API sleutel</label>
+        <div class="api-key-row" style="margin-top:6px;">
+          <div class="key-status-dot" id="keyStatusDot"></div>
+          <input type="password" id="apiKey" placeholder="AIzaSy..." style="padding:10px 12px;font-size:12.5px;" />
+        </div>
+        <div class="api-key-hint" id="providerHint" style="margin-top:6px;">Sleutel ophalen via <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a></div>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:4px;">🔒 Wordt alleen lokaal in deze browser opgeslagen (nooit verzonden naar een server). Gebruik geen gedeelde/publieke computer om je sleutel hier te bewaren.</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
+          <button class="btn-action" id="clearKeyBtn" style="padding:7px 12px;font-size:11.5px;">Wis sleutel</button>
+          <span id="keySavedBadge" style="color:var(--success);font-size:11.5px;font-weight:600;display:none;">✓ Opgeslagen</span>
+        </div>
+      </div>
+      <div class="settings-row">
+        <input type="checkbox" id="useLightModel">
+        <label for="useLightModel">Lichter/goedkoper model voor hulptaken (autopiloot & model-varianten)</label>
+      </div>
+      <div class="settings-row">
+        <input type="checkbox" id="useAudit" checked>
+        <label for="useAudit">KAM-kwaliteitsaudit meegenereren (kost extra tokens per generatie)</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-section" style="flex:1;min-height:0;display:flex;flex-direction:column;">
+    <div class="sidebar-heading">Geschiedenis</div>
+    <div class="sidebar-section-body history-section" id="historySection" style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;">
+      <div class="history-list" id="historyList" style="overflow-y:auto;"></div>
+      <div class="history-footer">
+        <button class="btn-clear-history" onclick="clearHistory()">✕ Wis</button>
+        <button class="btn-clear-history" onclick="exportHistory()">⬇ Export</button>
+        <label class="btn-clear-history" style="cursor:pointer;display:inline-block;">
+          ⬆ Import
+          <input type="file" accept="application/json" id="importHistoryInput" style="display:none;" onchange="importHistory(event)">
+        </label>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div class="sidebar-bottom">
+    <div class="theme-switch-row">
+      <span class="theme-switch-label" id="themeSwitchLabel">Licht thema</span>
+      <button class="theme-switch" id="themeSwitch" title="Wissel thema" aria-label="Wissel tussen licht en donker thema">
+        <span class="knob">🌙</span>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<button class="sidebar-open-btn icon-btn" id="sidebarOpenBtn" title="Menu openen" aria-label="Menu openen" style="position:fixed;top:16px;left:16px;z-index:30;background:var(--surface);">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+</button>
+
+<main class="main-content">
+
+<div class="topbar">
+  <div class="topbar-title">
+    <h1>Prompt <span>Generator</span></h1>
+    <span class="topbar-sub">Ontwerp, auditeer en optimaliseer AI-prompts · <button type="button" class="version-btn" id="versionBtn" onclick="openChangelog()" title="Bekijk versiegeschiedenis">v<span id="versionLabel"></span> ⓘ</button></span>
+  </div>
+</div>
+
+<div class="mode-switcher">
+  <button class="mode-btn active" id="modeManual" onclick="setMode('manual')">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+    ✎ Parameters invullen
+  </button>
+  <button class="mode-btn" id="modeAuto" onclick="setMode('auto')">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+    ⚡ Autopiloot
+  </button>
+</div>
+
+<div class="autopilot-panel" id="autopilotPanel">
+  <div class="autopilot-label">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+    Wat is je einddoel? De assistent configureert automatisch de velden
+  </div>
+  <textarea class="autopilot-input" id="autopilotInput" placeholder="bijv. Procesbeschrijving scheiding bedrijfsafval op milieustations, voor operationele medewerkers..."></textarea>
+  <button class="btn-analyze" id="analyzeBtn" onclick="analyzeAutopilot()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    Analyseer & vul parameters in
+  </button>
+  <div class="autopilot-result" id="autopilotResult" role="status" aria-live="polite"></div>
+</div>
+
+<div class="profile-bar" id="profileBar">
+  <div class="pb-row">
+    <label for="profielSelect">Profiel</label>
+    <select id="profielSelect" onchange="applyProfile(this.value)"></select>
+    <button type="button" class="btn-action" onclick="pgUpdate()" title="Slaat toon, doelgroep, lengte en vaste context op als standaard van dit profiel">💾 Standaard bijwerken</button>
+    <button type="button" class="btn-action" onclick="pgNew()">＋ Nieuw</button>
+    <button type="button" class="btn-action" onclick="pgDelete()">🗑</button>
+    <button type="button" class="btn-action" onclick="pgExport()" title="Export profielen">⬇</button>
+    <label class="btn-action" style="cursor:pointer;" title="Import profielen">⬆<input type="file" accept="application/json" style="display:none;" onchange="pgImport(event)"></label>
+  </div>
+  <div class="pb-row">
+    <label for="profielContext">Vaste context</label>
+    <textarea id="profielContext" placeholder="Achtergrond die aan élke prompt van dit profiel wordt toegevoegd (optioneel)..."></textarea>
+  </div>
+  <div class="pb-row">
+</div>
+</div>
+
+<div class="form-grid" id="form-grid-anchor">
+
+  <div class="form-section-head">
+    <span class="step-no">1</span><span class="step-title">Basis</span><span class="step-sub">— wat moet er komen, en waarin</span>
+  </div>
+
+  <div class="two-col">
+    <div class="field">
+      <label for="contentType">Soort output <span class="req">*</span></label>
+      <select id="contentType" aria-describedby="contentTypeError">
+        <option value="" disabled selected>Kies structuur...</option>
+        <option value="rapportage">Rapportage</option>
+        <option value="tekst">Tekst</option>
+        <option value="verslag">Verslag</option>
+        <option value="procesbeschrijving">Procesbeschrijving (KAM)</option>
+        <option value="checklist_werkinstructie">Checklist / Werkinstructie</option>
+        <option value="presentatie">Presentatie</option>
+        <option value="script">Script / Code</option>
+        <option value="analyse">Analyse / Dashboard</option>
+        <option value="e-mail">E-mail / Bericht</option>
+        <option value="template">Template</option>
+        <option value="matrix">Matrix</option>
+        <option value="afbeelding">Afbeelding</option>
+        <option value="ontwerp">Ontwerp (UX/UI, Layout, Infographic)</option>
+        <option value="ondersteuning">Ondersteuning</option>
+        <option value="overige_structuur">Overige</option>
+      </select>
+      <span class="field-error" id="contentTypeError">Kies eerst een soort output.</span>
+    </div>
+    <div class="field">
+      <label for="fileType">Gewenst bestandstype <span class="req">*</span></label>
+      <select id="fileType" aria-describedby="fileTypeError">
+        <option value="" disabled selected>Kies doelomgeving...</option>
+        <option value="Excel">Excel (Formules / VBA)</option>
+        <option value="Word">Word (.docx document)</option>
+        <option value="Powerpoint">PowerPoint (.pptx presentatie)</option>
+        <option value="PowerBI">PowerBI (DAX / Datamodel)</option>
+        <option value=".html">.html (Interactieve tool / Dashboard)</option>
+        <option value="powershell">PowerShell (.ps1 script)</option>
+        <option value="markdown">Markdown (.md tekst)</option>
+        <option value="tekst_bestand">Tekstbestand (.txt)</option>
+        <option value="chat_feedback">Feedback via de chat (geen bestand)</option>
+        <option value="plattegrond_afbeelding">Afbeelding / Image Prompt</option>
+        <option value=".png">.png (Afbeelding)</option>
+        <option value=".jpg">.jpg (Afbeelding)</option>
+        <option value=".pdf">.PDF (Document)</option>
+        <option value="overige_omgeving">Overige</option>
+      </select>
+      <span class="field-error" id="fileTypeError">Kies een doelomgeving.</span>
+      <span class="field-hint" id="fileTypeAutoHint" style="display:none;">↳ Automatisch voorgesteld op basis van je gekozen soort output — pas dit aan indien gewenst.</span>
+    </div>
+  </div>
+
+  <div class="inline-notice" id="imagePromptNotice">
+    <span>ℹ️</span>
+    <span>Deze tool genereert zelf geen afbeelding — het resultaat is een <strong>tekstprompt</strong> die je vervolgens invoert in een beeldgenerator (bijv. Midjourney, DALL·E, Gemini Imagen).</span>
+  </div>
+
+  <div class="field">
+    <label for="onderwerp">Onderwerp <span class="req">*</span></label>
+    <input type="text" id="onderwerp" placeholder="bijv. RI&E update operationele logistiek" aria-describedby="onderwerpError" />
+    <span class="field-error" id="onderwerpError">Beschrijf kort het onderwerp — dit veld is verplicht.</span>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="form-section-head">
+    <span class="step-no">2</span><span class="step-title">Stijl & doelgroep</span><span class="step-sub">— optioneel, verfijnt de toon</span>
+  </div>
+
+  <div class="two-col">
+    <div class="field">
+      <label for="toon">Toon</label>
+      <select id="toon">
+        <option value="formeel">Formeel</option>
+        <option value="informeel">Informeel</option>
+        <option value="technisch">Technisch (KAM-gericht)</option>
+        <option value="overtuigend">Overtuigend</option>
+        <option value="neutraal">Neutraal</option>
+        <option value="urgent">Urgent</option>
+        <option value="empathisch">Empathisch</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Doelgroep</label>
+      <div class="toggle-group" style="margin-bottom: 10px;">
+        <div class="toggle-option">
+          <input type="radio" name="doelgroepMode" id="modeHier" value="hier" class="visually-hidden" checked>
+          <label for="modeHier">📊 Hiërarchisch (schuif)</label>
+        </div>
+        <div class="toggle-option">
+          <input type="radio" name="doelgroepMode" id="modeLijst" value="lijst" class="visually-hidden">
+          <label for="modeLijst">🎯 Specifiek publiek (lijst)</label>
+        </div>
+      </div>
+
+      <div id="doelgroepHierPanel" class="doelgroep-slider-panel">
+        <input type="range" id="doelgroepSlider" min="0" max="100" step="5" value="50">
+        <div class="slider-scale">
+          <span>⚙️ Operationeel</span>
+          <span id="doelgroepSliderLabel">Gemengd publiek (50%)</span>
+          <span>🏛 Directie</span>
+        </div>
+      </div>
+
+      <select id="doelgroepList" style="display: none;">
+        <option value="">— Geen specifieke doelgroep —</option>
+        <option value="extern">Extern / Gemeente / Burger</option>
+        <option value="developer">Developer</option>
+        <option value="beleidsmaker">Beleidsmaker</option>
+        <option value="prive">Informeel / Persoonlijk / Privé</option>
+      </select>
+
+      <input type="hidden" id="doelgroep" value="">
+    </div>
+  </div>
+
+  <div class="live-preview" id="livePreview" aria-live="polite">
+    <div class="live-preview-head">
+      <div class="live-preview-label">🧭 Prompt-blauwdruk — dit ontvangt de AI</div>
+      <span class="bp-status" id="bpStatus"></span>
+    </div>
+    <div class="bp-rows">
+      <div class="bp-key">Opdracht</div><div class="bp-val" id="bpOpdracht"></div>
+      <div class="bp-key">Toon</div><div class="bp-val" id="bpToon"></div>
+      <div class="bp-key">Doelgroep</div><div class="bp-val" id="bpDoelgroep"></div>
+      <div class="bp-key">Lengte</div><div class="bp-val" id="bpLengte"></div>
+      <div class="bp-key">Context</div><div class="bp-val" id="bpContext"></div>
+      <div class="bp-key">Contextbeheer</div><div class="bp-val" id="bpConsistency"></div>
+      <div class="bp-key">Gegevenscontrole</div><div class="bp-val" id="bpDataSafety"></div>
+      <div class="bp-key">Uitvoereisen</div><div class="bp-val" id="bpEisen"></div>
+    </div>
+    <div class="bp-tip" id="bpTip"></div>
+  </div>
+
+  <div class="field">
+    <label for="context">Extra context / Beperkingen / Richtlijnen</label>
+    <textarea id="context" placeholder="bijv. Sluit aan bij ISO 14001 normering, gebruik overzichtelijke datatabellen, vermijd onnodig jargon..."></textarea>
+  </div>
+
+  <div class="consistency-panel">
+    <div class="consistency-head">
+      <div class="consistency-title">🧭 Contextbeheersing — voor stabielere vervolgvragen</div>
+      <span class="consistency-badge">AANBEVOLEN</span>
+    </div>
+    <div class="consistency-copy">
+      Deze instellingen zorgen dat de gegenereerde prompt expliciet vastlegt wat de AI moet behouden, wat mag wijzigen en wat zij moet doen wanneer de context onduidelijk of tegenstrijdig wordt.
+    </div>
+    <div class="consistency-grid">
+      <div class="consistency-option">
+        <label for="promptUseMode">Gebruikssituatie</label>
+        <select id="promptUseMode">
+          <option value="single">Eenmalige opdracht</option>
+          <option value="iterative" selected>Iteratief / vervolgvragen</option>
+          <option value="critical">Kritisch / brongebonden</option>
+        </select>
+      </div>
+      <div class="consistency-option">
+        <label for="ambiguityMode">Bij ontbrekende of onduidelijke informatie</label>
+        <select id="ambiguityMode">
+          <option value="ask" selected>Eerst verduidelijken, niet aannemen</option>
+          <option value="bounded">Alleen binnen expliciete kaders invullen</option>
+          <option value="best">Voorzichtig invullen en aannames markeren</option>
+        </select>
+      </div>
+    </div>
+    <div class="consistency-checks">
+      <label class="consistency-check"><input type="checkbox" id="ctxAnchor" checked> Contextanker behouden</label>
+      <label class="consistency-check"><input type="checkbox" id="changeScope" checked> Alleen expliciete wijziging uitvoeren</label>
+      <label class="consistency-check"><input type="checkbox" id="preserveRest" checked> Overige inhoud ongewijzigd laten</label>
+      <label class="consistency-check"><input type="checkbox" id="restartProtocol" checked> Herstartprotocol bij contextverlies</label>
+      <label class="consistency-check"><input type="checkbox" id="sourceBoundary"> Geen nieuwe feiten/aannames toevoegen</label>
+    </div>
+  </div>
+
+  <div class="data-safety-panel" id="dataSafetyPanel" data-profile-scope="werk">
+    <div class="data-safety-head">
+      <div class="data-safety-title">🛡️ Gegevens- en privacycontrole — Werk</div>
+      <span class="data-safety-badge">ALLEEN WERK</span>
+    </div>
+    <div class="data-safety-copy">Iedere gegenereerde prompt bevat een verplichte controle op <strong>persoonsgegevens, gevoelige persoonsgegevens en gevoelige/vertrouwelijke bedrijfsgegevens</strong>. Bij signalering moet het doelmodel dit melden met <strong>categorie + bron/locatie</strong>, zonder gevoelige inhoud onnodig te herhalen. Ook wanneer niets wordt aangetroffen moet dat expliciet worden gemeld.</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="form-section-head">
+    <span class="step-no">3</span><span class="step-title">Formaat</span><span class="step-sub">— lengte en aantal varianten</span>
+  </div>
+
+  <div class="field">
+    <label>Prompt Architectuur Lengte / Tokenbudget</label>
+    <div class="toggle-group-3">
+      <div class="toggle-option">
+        <input type="radio" name="lengte" id="kort" value="kort" checked class="visually-hidden">
+        <label for="kort">⚡ Kort<small>~100 woorden</small></label>
+      </div>
+      <div class="toggle-option">
+        <input type="radio" name="lengte" id="middel" value="middel" class="visually-hidden">
+        <label for="middel">▣ Middel<small>~250 woorden</small></label>
+      </div>
+      <div class="toggle-option">
+        <input type="radio" name="lengte" id="uitgebreid" value="uitgebreid" class="visually-hidden">
+        <label for="uitgebreid">🔍 Uitgebreid<small>~500 woorden</small></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Variatie-generatie</label>
+    <div class="toggle-group">
+      <div class="toggle-option">
+        <input type="radio" name="variaties" id="var1" value="1" checked class="visually-hidden">
+        <label for="var1">1 Optimale Versie</label>
+      </div>
+      <div class="toggle-option">
+        <input type="radio" name="variaties" id="var3" value="3" class="visually-hidden">
+        <label for="var3">3 Strategische Insteekvarianten</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Uitvoereisen <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);">— optioneel, komen als harde eis in de prompt</span></label>
+    <div class="eisen-grid" id="eisenGrid"></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn-generate" id="generateBtn" onclick="generatePrompt()" disabled>
+      <div class="spinner"></div>
+      <span class="btn-text">Genereer Prompt-Architectuur</span>
+    </button>
+    <button class="btn-reset" onclick="resetForm()">Reset velden</button>
+  </div>
+  <div class="field-hint" id="generateHint">Vul de verplichte velden (*) en je API-sleutel in om te kunnen genereren.</div>
+</div>
+
+<div class="error-msg" id="errorMsg" role="alert" aria-live="assertive"></div>
+
+<div class="result-section" id="resultSection">
+  <div class="section-sep"><span>✦ Gegenereerde Prompt-opbouw</span></div>
+  
+  <div class="result-header">
+    <div class="result-label">Gereed voor gebruik</div>
+    <div class="result-actions">
+      <button class="btn-action primary" id="copyBtn" onclick="copyPrompt()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        Kopieer prompt
+      </button>
+      <button class="btn-action" id="copyPlainBtn" onclick="copyPromptPlain()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
+        Kopieer zonder opmaak
+      </button>
+      <button class="btn-action" onclick="downloadPromptText()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download .txt
+      </button>
+      <button class="btn-action" id="refineToggleBtn" onclick="toggleRefine()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Verfijn output
+      </button>
+    </div>
+  </div>
+
+  <div class="variaties-toggle" id="variatiesToggle" style="display:none;">
+    <button class="var-tab active" onclick="showVariatie(0, this)">Insteek A (Focus Structuur)</button>
+    <button class="var-tab" onclick="showVariatie(1, this)">Insteek B (Focus Context)</button>
+    <button class="var-tab" onclick="showVariatie(2, this)">Insteek C (Focus Pragmatiek)</button>
+  </div>
+
+  <div class="result-box" id="resultBox"></div>
+
+  <div class="refine-panel" id="refinePanel">
+    <div class="refine-label">↳ Verfijn de gegenereerde prompt met extra instructies</div>
+    <input type="text" class="refine-input" id="refineInput" placeholder="bijv. maak het compacter, schrijf specifieke rollen voor de auditor uit..." />
+    <button class="btn-refine-submit" id="refineSubmitBtn" onclick="refinePrompt()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Verfijn prompt
+    </button>
+  </div>
+
+  <div class="quality-panel" id="qualityPanel">
+    <div class="quality-header">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      KAM Audit & Kwaliteitsscore van de Prompt
+    </div>
+    <div id="qualityContent" class="quality-loading" role="status" aria-live="polite">Audit verschijnt hier na generatie...</div>
+  </div>
+
+  <div class="dna-section" id="dnaSection">
+    <div class="section-sep"><span>✦ Prompt DNA — Variatie-analyse</span></div>
+    <div class="dna-header">
+      <div class="dna-label">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+        Selecteer twee varianten voor tekstuele differentiatie
+      </div>
+      <div class="dna-selector" id="dnaSelector">
+        <button class="dna-pick active-a" onclick="pickDna('a', 0, this)">Insteek A</button>
+        <button class="dna-pick active-b" onclick="pickDna('b', 1, this)">Insteek B</button>
+        <button class="dna-pick" onclick="pickDna('b', 2, this)">Insteek C</button>
+      </div>
+    </div>
+    <div class="dna-split">
+      <div class="dna-col">
+        <div class="dna-col-head" id="dnaHeadA">Insteek A</div>
+        <div class="dna-col-body" id="dnaBodyA"></div>
+      </div>
+      <div class="dna-col">
+        <div class="dna-col-head" id="dnaHeadB">Insteek B</div>
+        <div class="dna-col-body" id="dnaBodyB"></div>
+      </div>
+    </div>
+    <div class="dna-legend">
+      <span><div class="legend-dot dot-a"></div>Unieke elementen in linker variant</span>
+      <span><div class="legend-dot dot-b"></div>Unieke elementen in rechter variant</span>
+      <span style="color:var(--muted);font-size:11px;">Indicatief op woordniveau, geen exacte diff</span>
+    </div>
+  </div>
+
+  <div class="model-section" id="modelSection">
+    <div class="section-sep"><span>✦ Vertaling naar Doel-LLM (voor extern gebruik)</span></div>
+    <div class="model-header">
+      <div class="model-label">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Herschrijf de goedgekeurde prompt naar de syntax van het model waarin je hem gaat gebruiken
+      </div>
+      <button class="btn-action" id="modelGenBtn" onclick="generateModelVariants()" style="border-color:var(--accent);color:var(--accent);">Genereer varianten</button>
+    </div>
+    <div class="model-tabs">
+      <button class="model-tab active not-generated" onclick="showModelVariant('gemini', this)">
+        <span class="model-name">Gemini Optimalisatie</span>
+        <span>Structured JSON / Context Window</span>
+      </button>
+      <button class="model-tab not-generated" onclick="showModelVariant('claude', this)">
+        <span class="model-name">Claude Matrix</span>
+        <span>XML Tags / Chain of Thought</span>
+      </button>
+      <button class="model-tab not-generated" onclick="showModelVariant('o1_gpt4', this)">
+        <span class="model-name">GPT-4o / o1 Reeks</span>
+        <span>System Instructions / Logic Engine</span>
+      </button>
+    </div>
+    <div class="model-box" id="modelBox"><span style="color:var(--muted)">Klik op "Genereer varianten" om model-specifieke tweaks toe te passen.</span></div>
+    <div class="model-tip" id="modelTip" style="display:none"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:12px">
+      <button class="btn-action" id="copyModelBtn" onclick="copyModelPrompt()" style="display:none;background:var(--accent);color:#fff;">Kopieer variant</button>
+    </div>
+  </div>
+</div>
+
+</main>
+<div class="cl-overlay" id="clOverlay" onclick="if(event.target===this) closeChangelog()">
+  <div class="cl-modal" role="dialog" aria-modal="true" aria-labelledby="clTitle">
+    <div class="cl-head"><span id="clTitle">Versiegeschiedenis — Prompt Generator</span>
+      <button type="button" class="icon-btn" onclick="closeChangelog()" aria-label="Sluiten">✕</button></div>
+    <div class="cl-body" id="clBody"></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const PROVIDERS = {
+  gemini: {
+    label: 'Google AI Studio',
+    hint: 'Sleutel ophalen via <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>',
+    placeholder: 'AIzaSy...',
+    storageKey: 'pg_key_gemini',
+    call: callGemini,
+    callLight: (key, sys, user, cb) => callGemini(key, sys, user, cb, 'gemini-3.5-flash-lite'),
+  },
+  groq: {
+    label: 'Groq Cloud',
+    hint: 'Sleutel ophalen via <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a>',
+    placeholder: 'gsk_...',
+    storageKey: 'pg_key_groq',
+    call: (key, sys, user, cb) => callOpenAICompat(key, sys, user, cb, { url: 'https://api.groq.com/openai/v1/chat/completions', model: 'openai/gpt-oss-120b' }),
+    callLight: (key, sys, user, cb) => callOpenAICompat(key, sys, user, cb, { url: 'https://api.groq.com/openai/v1/chat/completions', model: 'openai/gpt-oss-20b' }),
+  },
+  openrouter: {
+    label: 'OpenRouter',
+    hint: 'Sleutel ophalen via <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a>',
+    placeholder: 'sk-or-...',
+    storageKey: 'pg_key_openrouter',
+    call: (key, sys, user, cb) => callOpenAICompat(key, sys, user, cb, { url: 'https://openrouter.ai/api/v1/chat/completions', model: 'anthropic/claude-sonnet-5' }),
+    callLight: (key, sys, user, cb) => callOpenAICompat(key, sys, user, cb, { url: 'https://openrouter.ai/api/v1/chat/completions', model: 'google/gemini-3.5-flash-lite' }),
+  }
+};
+
+let activeProvider = 'gemini';
+let currentMode = 'manual';
+let currentVariaties = []; 
+let modelVariants = {};
+let modelTips = {};
+let activeModelKey = 'gemini';
+let lastParams = null;
+let fileTypeTouched = false;
+const HISTORY_KEY = 'prompt_generator_history_v7';
+
+// Logische koppeling: bij een gekozen soort output stellen we een passend
+// bestandstype voor, zolang de gebruiker het bestandstype nog niet zelf heeft
+// aangepast. Dit maakt het formulier intuïtiever zonder keuzevrijheid weg te nemen.
+const CONTENT_TYPE_TO_FILETYPE = {
+  rapportage: 'Word',
+  tekst: 'markdown',
+  verslag: 'Word',
+  procesbeschrijving: 'Word',
+  checklist_werkinstructie: 'Word',
+  presentatie: 'Powerpoint',
+  script: 'powershell',
+  analyse: 'Excel',
+  'e-mail': 'chat_feedback',
+  template: 'Word',
+  matrix: 'Excel',
+  afbeelding: '.png',
+  ontwerp: '.html',
+  ondersteuning: 'chat_feedback',
+};
+const IMAGE_PROMPT_TYPES = new Set(['afbeelding', 'plattegrond_afbeelding', '.png', '.jpg']);
+
+function updateImagePromptNotice() {
+  const contentType = document.getElementById('contentType').value;
+  const fileType = document.getElementById('fileType').value;
+  const show = IMAGE_PROMPT_TYPES.has(contentType) || IMAGE_PROMPT_TYPES.has(fileType);
+  document.getElementById('imagePromptNotice').classList.toggle('visible', show);
+}
+
+function updateGenerateButtonState() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const contentType = document.getElementById('contentType').value;
+  const fileType = document.getElementById('fileType').value;
+  const onderwerp = document.getElementById('onderwerp').value.trim();
+  const ready = !!(apiKey && contentType && fileType && onderwerp);
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = !ready;
+  const hint = document.getElementById('generateHint');
+  if (hint) hint.style.display = ready ? 'none' : 'block';
+}
+
+function setFieldError(id, show) {
+  const errorEl = document.getElementById(id + 'Error');
+  const fieldEl = document.getElementById(id);
+  if (errorEl) errorEl.classList.toggle('visible', !!show);
+  if (fieldEl) fieldEl.classList.toggle('is-invalid', !!show);
+}
+
+function selectProvider(key, el) {
+  activeProvider = key;
+  document.querySelectorAll('.provider-card').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const cfg = PROVIDERS[key];
+  document.getElementById('providerKeyLabel').textContent = cfg.label;
+  document.getElementById('providerHint').innerHTML = cfg.hint;
+  document.getElementById('apiKey').placeholder = cfg.placeholder;
+  const saved = localStorage.getItem(cfg.storageKey) || '';
+  document.getElementById('apiKey').value = saved;
+  updateKeyBadge();
+  updateGenerateButtonState();
+}
+
+function updateKeyBadge() {
+  const cfg = PROVIDERS[activeProvider];
+  const saved = localStorage.getItem(cfg.storageKey);
+  const badge = document.getElementById('keySavedBadge');
+  const dot = document.getElementById('keyStatusDot');
+  if (badge) badge.style.display = saved ? 'inline' : 'none';
+  if (dot) dot.classList.toggle('has-key', !!saved);
+}
+
+// Gemini is vaste standaardprovider — laad opgeslagen sleutel direct bij opstarten,
+// ongeacht of DOMContentLoaded nog moet vuren of al voorbij is.
+function initApiKeyField() {
+  const saved = localStorage.getItem(PROVIDERS['gemini'].storageKey) || '';
+  document.getElementById('apiKey').value = saved;
+  updateKeyBadge();
+  updateGenerateButtonState();
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApiKeyField);
+} else {
+  initApiKeyField();
+}
+
+document.getElementById('apiKey').addEventListener('input', e => {
+  const val = e.target.value.trim();
+  const cfg = PROVIDERS[activeProvider];
+  if (val) localStorage.setItem(cfg.storageKey, val);
+  else localStorage.removeItem(cfg.storageKey);
+  updateKeyBadge();
+  updateGenerateButtonState();
+});
+
+document.getElementById('clearKeyBtn').addEventListener('click', () => {
+  document.getElementById('apiKey').value = '';
+  localStorage.removeItem(PROVIDERS[activeProvider].storageKey);
+  updateKeyBadge();
+  updateGenerateButtonState();
+});
+
+document.getElementById('contentType').addEventListener('change', e => {
+  clearError();
+  setFieldError('contentType', false);
+  const fileTypeSelect = document.getElementById('fileType');
+  const suggestion = CONTENT_TYPE_TO_FILETYPE[e.target.value];
+  const hint = document.getElementById('fileTypeAutoHint');
+  if (suggestion && !fileTypeTouched) {
+    fileTypeSelect.value = suggestion;
+    if (hint) hint.style.display = 'block';
+  } else if (hint) {
+    hint.style.display = 'none';
+  }
+  updateImagePromptNotice();
+  updateGenerateButtonState();
+});
+
+document.getElementById('fileType').addEventListener('change', () => {
+  clearError();
+  setFieldError('fileType', false);
+  fileTypeTouched = true;
+  const hint = document.getElementById('fileTypeAutoHint');
+  if (hint) hint.style.display = 'none';
+  updateImagePromptNotice();
+  updateGenerateButtonState();
+});
+
+document.getElementById('onderwerp').addEventListener('input', () => {
+  setFieldError('onderwerp', false);
+  updateGenerateButtonState();
+});
+
+// ── Prompt-blauwdruk: één bron van waarheid voor de stijlinstructies. Dezelfde teksten die hier
+// getoond worden, worden ook daadwerkelijk aan de AI meegegeven (zie generatePrompt). ──
+const APP_VERSION = '10.4.4';
+const TOON_INSTRUCTIE = {
+  formeel:     'Schrijf zakelijk en correct: u-vorm, volledige zinnen, geen spreektaal of afkortingen.',
+  informeel:   'Schrijf toegankelijk en direct: je-vorm, korte zinnen, spreektaal is toegestaan.',
+  technisch:   'Schrijf precies en technisch: gebruik vakterminologie, benoem specificaties waar relevant en definieer afkortingen bij eerste gebruik.',
+  overtuigend: 'Schrijf beargumenterend: begin met het belang, onderbouw met feiten en sluit af met een duidelijke vervolgactie.',
+  neutraal:    'Schrijf feitelijk en objectief: geen waardeoordelen of aansporingen, presenteer uitsluitend informatie.',
+  urgent:      'Schrijf beknopt en prioriterend: benoem direct de vereiste actie, wie moet handelen en binnen welke termijn.',
+  empathisch:  'Schrijf begripvol en zorgvuldig: erken eerst de situatie van de lezer voordat je informatie geeft of actie vraagt.'
+};
+const DOELGROEP_LIJST_INSTRUCTIE = {
+  'extern':       'Externe partijen (gemeente, burger): vermijd interne afkortingen en jargon, licht context toe.',
+  'developer':    'Developers: technisch precies, met aandacht voor specificaties, conventies en randgevallen.',
+  'beleidsmaker': 'Beleidsmakers: nadruk op beleidskader, afwegingen, gevolgen en besluitvorming.',
+  'prive':        'Informele / persoonlijke context: ongedwongen en persoonlijk van toon.'
+};
+const LENGTE_MAP = {
+  kort:       { woorden: '~100 woorden', n: 100, instructie: 'Schrijf een krachtige, directe en heldere single-shot prompt van circa 100 woorden.' },
+  middel:     { woorden: '~250 woorden', n: 250, instructie: 'Bouw een evenwichtige prompt van circa 250 woorden met heldere structuur en de belangrijkste afbakeningsregels.' },
+  uitgebreid: { woorden: '~500 woorden', n: 500, instructie: 'Bouw een uitgebreide, modulaire prompt van circa 500 woorden met rollen, expliciete afbakeningsregels en formatting wetten.' }
+};
+const CHANGELOG = [
+  { versie: '10.4.4', datum: '2026-09-25', wijzigingen: [
+    ['Bugfix', 'Verfijnen volgt nu het actuele profiel: Werk voegt de gegevenscontrole toe of behoudt deze; Privé en andere profielen verwijderen deze uit de prompt.'],
+    ['Verbeterd', 'Historie bewaart nu het profiel en de profielgebonden gegevenscontrole, zodat laden van een prompt de juiste Werk/Privé-context herstelt.'],
+    ['Compatibiliteit', 'Oude historie-items zonder profielinformatie blijven bruikbaar en volgen het op dat moment actieve profiel.']
+  ]},
+  { versie: '10.4.3', datum: '2026-09-25', wijzigingen: [
+    ['Gewijzigd', 'De prompt-blauwdruk toont de gegevenscontrole niet langer als Altijd; deze is nu visueel en inhoudelijk alleen actief bij het profiel Werk.'],
+    ['Bugfix', 'Bij Privé en andere profielen wordt in de live preview expliciet aangegeven dat de gegevenscontrole niet actief is.']
+  ]},
+  { versie: '10.4.2', datum: '2026-09-25', wijzigingen: [
+    ['Bugfix', 'Een JavaScript-syntaxfout in de wijziging van de Werk-gegevenscontrole verhinderde dat de interface-initialisatie werd uitgevoerd; deze is hersteld.'],
+    ['Hersteld', 'Providerkeuze, API-sleutel laden en opslaan, Parameters invullen en Autopiloot werken weer zoals bedoeld.']
+  ]},
+  { versie: '10.4.1', datum: '2026-09-25', wijzigingen: [
+    ['Gewijzigd', 'Gegevens- en privacycontrole is uitsluitend gekoppeld aan het profiel Werk; bij Privé en andere profielen wordt deze controle niet aan nieuwe prompts toegevoegd en blijft het paneel verborgen.'],
+    ['Gewijzigd', 'Bij het verfijnen van een prompt wordt de gegevens- en privacycontrole alleen behouden wanneer de oorspronkelijke prompt vanuit het profiel Werk is gegenereerd.']
+  ]},
+  ['10.4.0', 'Vaste gegevens- en privacycontrole in iedere gegenereerde prompt, inclusief signalering, categorie en bron/locatie; controle blijft behouden bij verfijnen.'],
+  { versie: '10.3.0', datum: '2026-09-25', wijzigingen: [
+    ['Nieuw', 'Contextbeheersing voor consistente vervolgvragen: gebruikssituatie, onzekerheidsregel, contextanker, wijzigingsscope, behoud van overige inhoud en herstartprotocol.'],
+    ['Verbeterd', 'De promptarchitectuur instrueert het doelmodel explicieter om bij vervolgvragen alleen de gevraagde wijziging door te voeren en niet zelfstandig eerdere context te reconstrueren.'],
+    ['Verbeterd', 'De verfijnfunctie bewaakt nu expliciet het oorspronkelijke kader en de contextbeheerregels, zodat een kleine wijziging minder snel onbedoelde promptonderdelen overschrijft.'],
+    ['Nieuw', 'Contextbeheerinstellingen worden meegenomen in historie en profielinstellingen en zijn zichtbaar in de live prompt-blauwdruk.']
+  ]},
+  { versie: '10.2.0', datum: '2026-09-24', wijzigingen: [
+    ['Nieuw', 'Profielen (standaard "Werk" en "Privé"): per profiel opgeslagen standaardwaarden voor toon, doelgroep en lengte plus een vaste achtergrondcontext die aan elke prompt wordt toegevoegd. Profielen zijn aan te maken, bij te werken en te verwijderen.'],
+    ['Nieuw', 'Profielen: sla vaste stijl- en contextvoorkeuren op per gebruikssituatie.'],
+    ['Nieuw', 'Uitvoereisen (tabel, stappenplan, bronvermelding, samenvatting, voorbeeld, checklist, risico\'s): worden als harde eis in de gegenereerde prompt opgenomen, getoond in de blauwdruk en bewaard in de geschiedenis.'],
+    ['Gewijzigd', '"Reset velden" herstelt nu de standaardwaarden van het actieve profiel.'],
+    ['Technisch', 'Opslag in localStorage (sleutel pg_profielen_v1), met foutafhandeling.']
+  ]},
+  { versie: '10.1.1', datum: '2026-09-24', wijzigingen: [
+    ['Gewijzigd', 'Toon-instructie "Technisch" en contextadvies in de blauwdruk zijn algemeen geformuleerd (geen verwijzing meer naar KAM, normen of clausules), zodat de tool ook voor privégebruik neutraal werkt.']
+  ]},
+  { versie: '10.1.0', datum: '2026-09-24', wijzigingen: [
+    ['Gewijzigd', 'Live voorbeeld vervangen door de "Prompt-blauwdruk": toont per keuze de daadwerkelijke instructie die naar de AI gaat (opdracht, toon, doelgroep, lengte, context) in plaats van een vaste voorbeeldzin.'],
+    ['Gewijzigd', 'Toon en doelgroep (lijstkeuze) worden nu als concrete schrijfinstructie aan de AI meegegeven i.p.v. alleen het label. Dit beïnvloedt de gegenereerde prompts en is exact wat de blauwdruk toont.'],
+    ['Nieuw', 'Gereedheidsstatus in de blauwdruk (ontbrekende verplichte velden) en een contextadvies wanneer het contextveld leeg is.'],
+    ['Nieuw', 'Versiebeheer: versielabel in de titelbalk met dit wijzigingsoverzicht.'],
+    ['Technisch', 'LENGTE_MAP is globaal gemaakt en gedeeld door blauwdruk en generatie; oude constanten TOON_VOORBEELD, DOELGROEP_LABEL en LENGTE_LABEL verwijderd.']
+  ]},
+  { versie: '10.0.0', datum: 'onbekend', wijzigingen: [
+    ['Basis', 'Uitgangsversie zoals aangeleverd. Eerdere wijzigingshistorie was niet in het bestand vastgelegd.']
+  ]}
+];
+
+// ── Doelgroep-mengschuif: hiërarchisch spectrum (operationeel ↔ directie) als
+// alternatief voor de vaste-lijstkeuze, voor publiek dat op meerdere niveaus tegelijk leest. ──
+const DOELGROEP_SLIDER_STOPS = [
+  { max: 20,  label: 'Operationeel',          text: "Schrijf uitsluitend voor operationeel personeel / uitvoerende collega's: concreet, stapsgewijs, vermijd abstracte terminologie." },
+  { max: 40,  label: 'Overwegend operationeel', text: 'Schrijf overwegend voor operationeel personeel, met een lichte blik richting leidinggevenden: praktisch maar toegankelijk voor management.' },
+  { max: 60,  label: 'Gemengd publiek',        text: 'Schrijf voor een gemengd publiek van uitvoerend personeel én leidinggevenden: geef eerst de praktische kern, gevolgd door een korte strategische duiding.' },
+  { max: 80,  label: 'Overwegend directie',    text: 'Schrijf overwegend voor management/directie, met oog voor uitvoerbaarheid: nadruk op besluitvorming, praktische details zijn bijzaak.' },
+  { max: 101, label: 'Directie',               text: "Schrijf voor directieniveau / board: focus op risico, besluitvorming en KPI's; praktische details zijn ondergeschikt." }
+];
+function getDoelgroepSliderStop(pct) {
+  return DOELGROEP_SLIDER_STOPS.find(s => pct <= s.max) || DOELGROEP_SLIDER_STOPS[DOELGROEP_SLIDER_STOPS.length - 1];
+}
+// Vroegere vaste opties die nu in het schuif-spectrum vallen, voor het terugladen van oudere historie/autopilot-data.
+const DOELGROEP_LEGACY_SLIDER_POS = { "collega's": 10, 'management': 75, 'directie': 100 };
+const DOELGROEP_LIJST_VALUES = new Set(['', 'extern', 'developer', 'beleidsmaker', 'prive']);
+
+function syncDoelgroepHidden() {
+  const mode = document.querySelector('input[name="doelgroepMode"]:checked').value;
+  const hidden = document.getElementById('doelgroep');
+  if (mode === 'hier') {
+    const pct = Number(document.getElementById('doelgroepSlider').value);
+    const stop = getDoelgroepSliderStop(pct);
+    document.getElementById('doelgroepSliderLabel').textContent = stop.label + ' (' + pct + '%)';
+    hidden.value = stop.text;
+  } else {
+    hidden.value = document.getElementById('doelgroepList').value;
+  }
+}
+function setDoelgroepMode(mode) {
+  document.getElementById(mode === 'hier' ? 'modeHier' : 'modeLijst').checked = true;
+  document.getElementById('doelgroepHierPanel').style.display = mode === 'hier' ? 'flex' : 'none';
+  document.getElementById('doelgroepList').style.display = mode === 'hier' ? 'none' : 'block';
+  syncDoelgroepHidden();
+  updateLivePreview();
+}
+// Reconstrueert modus + besturingselement uit een opgeslagen waarde (historie, autopilot, of oudere versie).
+function applyDoelgroepValue(val) {
+  val = val || '';
+  if (DOELGROEP_LIJST_VALUES.has(val)) {
+    document.getElementById('doelgroepList').value = val;
+    setDoelgroepMode('lijst');
+  } else if (DOELGROEP_LEGACY_SLIDER_POS.hasOwnProperty(val)) {
+    document.getElementById('doelgroepSlider').value = DOELGROEP_LEGACY_SLIDER_POS[val];
+    setDoelgroepMode('hier');
+  } else {
+    // Onbekende / vrije tekst (bijv. eerder gegenereerde schuif-instructie): bewaar de tekst zelf,
+    // toon de schuif neutraal met een aanduiding dat het om een bewaarde, aangepaste tekst gaat.
+    document.getElementById('doelgroepSlider').value = 50;
+    setDoelgroepMode('hier');
+    document.getElementById('doelgroep').value = val;
+    document.getElementById('doelgroepSliderLabel').textContent = 'Aangepast (opgeslagen tekst)';
+  }
+}
+document.querySelectorAll('input[name="doelgroepMode"]').forEach(r => r.addEventListener('change', e => setDoelgroepMode(e.target.value)));
+document.getElementById('doelgroepSlider').addEventListener('input', () => { syncDoelgroepHidden(); updateLivePreview(); });
+document.getElementById('doelgroepList').addEventListener('change', () => { syncDoelgroepHidden(); updateLivePreview(); });
+
+function getDoelgroepInstructie(val) {
+  val = val || '';
+  if (!val) return '';
+  if (DOELGROEP_LIJST_INSTRUCTIE[val]) return DOELGROEP_LIJST_INSTRUCTIE[val];
+  if (DOELGROEP_LEGACY_SLIDER_POS.hasOwnProperty(val)) return getDoelgroepSliderStop(DOELGROEP_LEGACY_SLIDER_POS[val]).text;
+  return val; // schuif-instructie of vrije tekst is al een volledige instructie
+}
+function getToonInstructie(toon) { return TOON_INSTRUCTIE[toon] || ''; }
+
+function updateLivePreview() {
+  const el = id => document.getElementById(id);
+  const selText = id => { const s = el(id); return (s.value && s.options[s.selectedIndex]) ? s.options[s.selectedIndex].text : ''; };
+  const empty = t => '<span class="bp-empty">' + t + '</span>';
+
+  const ct = selText('contentType'), ft = selText('fileType'), onderwerp = el('onderwerp').value.trim();
+  const toon = el('toon').value, toonLabel = selText('toon') || toon;
+  const doelInstr = getDoelgroepInstructie(el('doelgroep').value);
+  const lengteEl = document.querySelector('input[name="lengte"]:checked');
+  const lengte = lengteEl ? lengteEl.value : 'kort';
+  const spec = LENGTE_MAP[lengte] || LENGTE_MAP.kort;
+  const ctx = el('context').value.trim();
+  const variaties = document.querySelector('input[name="variaties"]:checked')?.value || '1';
+
+  el('bpOpdracht').innerHTML =
+    '<b>' + (ct ? escapeHtml(ct) : empty('soort output nog niet gekozen')) + '</b> → ' +
+    (ft ? escapeHtml(ft) : empty('doelomgeving nog niet gekozen')) +
+    '<span class="bp-instr">' + (onderwerp ? 'Onderwerp: ' + escapeHtml(onderwerp) : empty('onderwerp nog niet ingevuld')) + '</span>';
+  el('bpToon').innerHTML = '<b>' + escapeHtml(toonLabel) + '</b><span class="bp-instr">' + escapeHtml(getToonInstructie(toon)) + '</span>';
+  el('bpDoelgroep').innerHTML = doelInstr ? escapeHtml(doelInstr) : empty('geen specifieke doelgroep — de AI kiest zelf een algemeen niveau');
+  el('bpLengte').innerHTML = '<div class="bp-budget"><div class="bp-bar"><i style="width:' + Math.round(spec.n / 5) + '%"></i></div><span><b>' + spec.woorden +
+    '</b> per versie · ≈ ' + Math.round(spec.n * 1.5) + ' tokens (indicatief)' + (variaties === '3' ? ' · ×3 varianten' : '') + '</span></div>';
+  const vaste = (el('profielContext').value || '').trim();
+  el('bpContext').innerHTML = (vaste ? '<span class="bp-instr" style="margin:0 0 3px;">Profiel: ' + escapeHtml(vaste.length > 120 ? vaste.slice(0, 120) + '…' : vaste) + '</span>' : '') +
+    (ctx ? escapeHtml(ctx.length > 140 ? ctx.slice(0, 140) + '…' : ctx) + ' <span class="bp-empty">(' + ctx.length + ' tekens)</span>' : empty('geen extra context of beperkingen opgegeven'));
+  const eis = getEisen();
+  el('bpEisen').innerHTML = eis.length ? eis.map(k => escapeHtml(EISEN[k][0])).join(' · ') : empty('geen aanvullende uitvoereisen');
+
+  const cc = getContextControl();
+  const ccFlags = [
+    cc.anchor ? 'anker' : null,
+    cc.changeScope ? 'scope' : null,
+    cc.preserveRest ? 'behoud' : null,
+    cc.restart ? 'herstart' : null,
+    cc.sourceBoundary ? 'brongebonden' : null
+  ].filter(Boolean);
+  el('bpConsistency').innerHTML =
+    '<b>' + escapeHtml(cc.modeLabel) + '</b>' +
+    '<span class="bp-instr">' + escapeHtml(ccFlags.length ? ccFlags.join(' · ') : 'geen extra contextregels') + '</span>';
+
+  const dataSafety = isWerkProfiel();
+  el('bpDataSafety').innerHTML = dataSafety
+    ? '<b>Actief — Werk</b><span class="bp-instr">Persoonsgegevens, gevoelige persoonsgegevens en vertrouwelijke/gevoelige bedrijfsgegevens signaleren met bron/locatie.</span>'
+    : '<b>Niet actief</b><span class="bp-instr">Deze controle wordt niet aan de prompt toegevoegd voor het profiel ' + escapeHtml(PG?.profielen?.[PG?.actief]?.naam || 'Privé') + '.</span>';
+
+  const missing = [];
+  if (!ct) missing.push('soort output'); if (!ft) missing.push('doelomgeving'); if (!onderwerp) missing.push('onderwerp');
+  const st = el('bpStatus');
+  if (missing.length) { st.className = 'bp-status pending'; st.textContent = 'Nog nodig: ' + missing.join(', '); }
+  else { st.className = 'bp-status ready'; st.textContent = '✓ Gereed om te genereren'; }
+
+  const tip = el('bpTip');
+  if (!ctx) { tip.className = 'bp-tip warn'; tip.textContent = 'Advies: voeg context toe (bijv. doel, afbakening, gewenste opbouw of randvoorwaarden). Zonder context blijft de prompt generiek.'; }
+  else if (ctx.length < 40) { tip.className = 'bp-tip warn'; tip.textContent = 'Advies: de context is erg kort. Noem doel, afbakening of gewenste opbouw voor een specifiekere prompt.'; }
+  else { tip.className = 'bp-tip'; tip.textContent = 'Bovenstaande instructies worden ongewijzigd aan de AI meegegeven.'; }
+}
+['contentType', 'fileType'].forEach(id => document.getElementById(id).addEventListener('change', updateLivePreview));
+['onderwerp', 'context'].forEach(id => document.getElementById(id).addEventListener('input', updateLivePreview));
+document.getElementById('toon').addEventListener('change', updateLivePreview);
+document.querySelectorAll('input[name="lengte"], input[name="variaties"]').forEach(r => r.addEventListener('change', updateLivePreview));
+['promptUseMode','ambiguityMode','ctxAnchor','changeScope','preserveRest','restartProtocol','sourceBoundary'].forEach(id => {
+  document.getElementById(id)?.addEventListener('change', updateLivePreview);
+});
+document.addEventListener('DOMContentLoaded', updateLivePreview);
+
+// ── Profielen & uitvoereisen ──
+const EISEN = {
+  tabel:        ['Met tabel', 'Vereis een overzichtelijke tabel voor vergelijkbare gegevens.'],
+  stappen:      ['Met stappenplan', 'Vereis een genummerd stappenplan.'],
+  bron:         ['Met bronvermelding', 'Vereis bronvermelding bij feiten en verbied het verzinnen van bronnen.'],
+  samenvatting: ['Samenvatting bovenaan', 'Vereis een samenvatting van maximaal vijf regels bovenaan.'],
+  voorbeeld:    ['Met voorbeeld', 'Vereis minimaal één uitgewerkt voorbeeld.'],
+  checklist:    ['Afsluitende checklist', 'Vereis een afsluitende checklist met controlepunten.'],
+  risico:       ["Risico's & aandachtspunten", "Vereis een aparte paragraaf met risico's en aandachtspunten."]
+};
+const PG_KEY = 'pg_profielen_v1';
+let PG = { actief: 'werk', profielen: {} };
+function getEisen() { return Object.keys(EISEN).filter(k => document.getElementById('eis_' + k)?.checked); }
+
+const CONTEXT_MODES = {
+  single: {
+    label: 'Eenmalige opdracht',
+    instruction: 'Ontwerp primair voor één gecontroleerde uitvoer. Houd de opdracht en afbakening expliciet en voeg geen onnodig vervolgprotocol toe.'
+  },
+  iterative: {
+    label: 'Iteratief / vervolgvragen',
+    instruction: 'Ontwerp voor meerdere vervolgvragen. Behandel de laatst expliciet goedgekeurde versie als werkbasis; laat vervolgvragen alleen expliciet genoemde onderdelen wijzigen.'
+  },
+  critical: {
+    label: 'Kritisch / brongebonden',
+    instruction: 'Ontwerp voor informatie waarbij fouten ongewenst zijn. Werk brongebonden, maak onzekerheden zichtbaar, voeg geen feiten of eisen toe die niet uit de bron of opdracht volgen en vraag om verduidelijking wanneer een wijziging niet eenduidig is.'
+  }
+};
+
+function getContextControl() {
+  const mode = document.getElementById('promptUseMode')?.value || 'iterative';
+  return {
+    mode,
+    modeLabel: CONTEXT_MODES[mode]?.label || mode,
+    ambiguity: document.getElementById('ambiguityMode')?.value || 'ask',
+    anchor: !!document.getElementById('ctxAnchor')?.checked,
+    changeScope: !!document.getElementById('changeScope')?.checked,
+    preserveRest: !!document.getElementById('preserveRest')?.checked,
+    restart: !!document.getElementById('restartProtocol')?.checked,
+    sourceBoundary: !!document.getElementById('sourceBoundary')?.checked
+  };
+}
+
+function getContextControlInstruction() {
+  const c = getContextControl();
+  const ambiguityMap = {
+    ask: 'Als informatie ontbreekt, dubbelzinnig is of naar meerdere eerdere versies kan verwijzen: stel eerst een gerichte verduidelijkingsvraag. Vul niet zelfstandig in.',
+    bounded: 'Vul alleen informatie in die logisch volgt uit de expliciete opdracht en gegeven context. Markeer resterende onzekerheid.',
+    best: 'Maak alleen noodzakelijke aannames, markeer deze expliciet en laat de gebruiker ze kunnen corrigeren.'
+  };
+  const regels = [
+    `Gebruikssituatie: ${c.modeLabel}.`,
+    CONTEXT_MODES[c.mode]?.instruction,
+    c.anchor ? 'Gebruik een expliciet contextanker: benoem de geldende uitgangssituatie, scope en relevante eerdere afspraken wanneer een vervolgactie daarop voortbouwt.' : null,
+    c.changeScope ? 'Voer bij een vervolgactie uitsluitend de expliciet gevraagde wijziging uit.' : null,
+    c.preserveRest ? 'Behoud alle overige inhoud, structuur, feiten, verantwoordelijkheden en randvoorwaarden ongewijzigd, tenzij de gebruiker expliciet om wijziging vraagt.' : null,
+    `Onzekerheidsregel: ${ambiguityMap[c.ambiguity]}`,
+    c.restart ? 'Als eerdere antwoorden elkaar tegenspreken of de context onbetrouwbaar is geworden: stop, benoem het conflict en vraag om of werk met één expliciet aangewezen gecontroleerde basisversie. Stel desgewenst een compacte herstartinstructie op.' : null,
+    c.sourceBoundary ? 'Voeg geen nieuwe feiten, normen, eisen, bronnen of aannames toe zonder expliciete basis. Verwijs voor kritieke informatie naar de aangeleverde bron of vraag om de bron.' : null
+  ].filter(Boolean);
+  return regels.join(' ');
+}
+
+function setEisen(arr) { arr = arr || []; Object.keys(EISEN).forEach(k => { const c = document.getElementById('eis_' + k); if (c) c.checked = arr.includes(k); }); updateLivePreview(); }
+function isWerkProfiel() { return PG?.actief === 'werk'; }
+function updateDataSafetyUI() {
+  const panel = document.getElementById('dataSafetyPanel');
+  if (panel) panel.style.display = isWerkProfiel() ? '' : 'none';
+}
+function getDataSafetyInstruction() {
+  if (!isWerkProfiel()) return '';
+  return `VASTE GEGEVENS- EN PRIVACYCONTROLE — ALLEEN VOOR HET PROFIEL WERK — ALTIJD IN DE GEGENEREERDE PROMPT OPNEMEN:
+- Voer vóór inhoudelijke verwerking altijd een controle uit op de aangeleverde prompt, context, tekst, bestanden, broninformatie en eventuele toolresultaten.
+- Signaleer persoonsgegevens, gevoelige persoonsgegevens en gevoelige/vertrouwelijke bedrijfsgegevens. Denk onder meer aan namen in combinatie met identificerende informatie, contactgegevens, identificatienummers, financiële of personeelsinformatie, bijzondere persoonsgegevens, inloggegevens/sleutels, bedrijfsvertrouwelijke informatie, commerciële/strategische informatie, contractuele gegevens en bedrijfsgeheimen.
+- Als gegevens worden gesignaleerd: meld dit expliciet vóór of aan het begin van de inhoudelijke verwerking en vermeld per signalering minimaal de categorie, de bron/locatie waar de gegevens zijn aangetroffen en waarom deze als gevoelig of persoons-/bedrijfsgebonden wordt beschouwd. Herhaal de gevoelige inhoud zelf zo min mogelijk.
+- Gebruik voor de bron/locatie de concrete aangeleverde bron, zoals veldnaam, tekstfragment, bestand + pagina/sectie, URL/domein of toolresultaat. Als de herkomst niet betrouwbaar kan worden vastgesteld, vermeld expliciet: 'bron/locatie niet vast te stellen'. Verzin nooit een bron.
+- Maak onderscheid tussen persoonsgegevens, gevoelige persoonsgegevens en gevoelige/vertrouwelijke bedrijfsgegevens; zet niet automatisch elk bedrijfsgegeven of elke naam als 'gevoelig' aan.
+- Als niets wordt aangetroffen, meld expliciet: 'Geen persoonsgegevens, gevoelige persoonsgegevens of gevoelige/vertrouwelijke bedrijfsgegevens gedetecteerd op basis van de aangeleverde informatie.'
+- De controle is signalerend: verwijder, maskeer of anonimiseer gegevens alleen wanneer de gebruiker dat vraagt of de opdracht dat expliciet voorschrijft. Geef bij twijfel eerst een waarschuwing en vraag zo nodig om bevestiging.
+- Voeg de gegevenscontrole als herkenbare vaste sectie toe aan de gegenereerde prompt, zodat deze controle ook bij vervolgvragen behouden blijft.`;
+}
+function getVasteContext() { return (document.getElementById('profielContext').value || '').trim(); }
+function pgLoad() {
+  try { PG = JSON.parse(localStorage.getItem(PG_KEY)) || null; } catch (e) { PG = null; }
+  if (!PG || !PG.profielen || !PG.profielen[PG.actief]) {
+    PG = { actief: 'werk', profielen: {
+      werk: { naam: 'Werk', toon: 'formeel', dg: { mode: 'hier', slider: 50, list: '' }, lengte: 'middel', context: 'Achtergrond: KAM-adviseur bij een semioverheid afvalverwerkingsbedrijf (ISO 9001/14001/45001, MVO Prestatieladder).', promptUseMode: 'iterative', ambiguityMode: 'ask', ctxAnchor: true, changeScope: true, preserveRest: true, restartProtocol: true, sourceBoundary: false },
+      prive: { naam: 'Privé', toon: 'informeel', dg: { mode: 'lijst', slider: 50, list: 'prive' }, lengte: 'kort', context: '', promptUseMode: 'iterative', ambiguityMode: 'ask', ctxAnchor: true, changeScope: true, preserveRest: true, restartProtocol: true, sourceBoundary: false } } };
+  }
+}
+function pgSave() { try { localStorage.setItem(PG_KEY, JSON.stringify(PG)); } catch (e) { showError('Opslaan van profielen in de browser is mislukt.'); } }
+function getDg() {
+  return { mode: document.querySelector('input[name="doelgroepMode"]:checked').value, slider: Number(document.getElementById('doelgroepSlider').value), list: document.getElementById('doelgroepList').value };
+}
+function setDg(dg) {
+  dg = dg || { mode: 'hier', slider: 50, list: '' };
+  document.getElementById('doelgroepSlider').value = dg.slider; document.getElementById('doelgroepList').value = dg.list;
+  setDoelgroepMode(dg.mode);
+}
+function setLengte(l) { const r = document.getElementById(LENGTE_MAP[l] ? l : 'kort'); r.checked = true; }
+function currentProfielSettings() {
+  const c = getContextControl();
+  return {
+    toon: document.getElementById('toon').value,
+    dg: getDg(),
+    lengte: document.querySelector('input[name="lengte"]:checked').value,
+    context: getVasteContext(),
+    promptUseMode: c.mode,
+    ambiguityMode: c.ambiguity,
+    ctxAnchor: c.anchor,
+    changeScope: c.changeScope,
+    preserveRest: c.preserveRest,
+    restartProtocol: c.restart,
+    sourceBoundary: c.sourceBoundary
+  };
+}
+function renderPgUI() {
+  const ps = document.getElementById('profielSelect'); ps.innerHTML = '';
+  Object.entries(PG.profielen).forEach(([id, p]) => ps.add(new Option(p.naam, id, false, id === PG.actief)));
+}
+function applyProfile(id) {
+  if (!PG.profielen[id]) id = Object.keys(PG.profielen)[0];
+  PG.actief = id; const p = PG.profielen[id];
+  document.getElementById('toon').value = p.toon; setDg(p.dg); setLengte(p.lengte);
+  document.getElementById('profielContext').value = p.context || '';
+  document.getElementById('promptUseMode').value = p.promptUseMode || 'iterative';
+  document.getElementById('ambiguityMode').value = p.ambiguityMode || 'ask';
+  document.getElementById('ctxAnchor').checked = p.ctxAnchor !== false;
+  document.getElementById('changeScope').checked = p.changeScope !== false;
+  document.getElementById('preserveRest').checked = p.preserveRest !== false;
+  document.getElementById('restartProtocol').checked = p.restartProtocol !== false;
+  document.getElementById('sourceBoundary').checked = !!p.sourceBoundary;
+  pgSave(); renderPgUI(); updateDataSafetyUI(); updateLivePreview();
+}
+function pgUpdate() { Object.assign(PG.profielen[PG.actief], currentProfielSettings()); pgSave(); showToastPg('Standaard van profiel "' + PG.profielen[PG.actief].naam + '" bijgewerkt.'); }
+function pgNew() {
+  const naam = (prompt('Naam van het nieuwe profiel (huidige instellingen worden overgenomen):') || '').trim(); if (!naam) return;
+  const id = 'p' + Date.now(); PG.profielen[id] = Object.assign({ naam }, currentProfielSettings()); applyProfile(id);
+}
+function pgDelete() {
+  if (Object.keys(PG.profielen).length < 2) { showError('Het laatste profiel kan niet worden verwijderd.'); return; }
+  const p = PG.profielen[PG.actief];
+  if (!confirm('Profiel "' + p.naam + '" verwijderen?')) return;
+  delete PG.profielen[PG.actief]; applyProfile(Object.keys(PG.profielen)[0]);
+}
+function showToastPg(m) { const h = document.getElementById('generateHint'); if (h) { const o = h.textContent; h.textContent = '✓ ' + m; setTimeout(() => { h.textContent = o; }, 2500); } }
+function pgExport() {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(PG, null, 2)], { type: 'application/json' }));
+  a.download = 'prompt-generator-profielen.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function pgImport(ev) {
+  const f = ev.target.files[0]; if (!f) return; const r = new FileReader();
+  r.onload = () => { try { const d = JSON.parse(r.result); if (!d.profielen || !d.profielen[d.actief]) throw new Error();
+      if (!confirm('Huidige profielen vervangen door de inhoud van dit bestand?')) return; PG = d; applyProfile(PG.actief); } catch (e) { showError('Ongeldig profielbestand.'); } };
+  r.readAsText(f); ev.target.value = '';
+}
+function initProfielen() {
+  document.getElementById('eisenGrid').innerHTML = Object.entries(EISEN).map(([k, v]) =>
+    '<label><input type="checkbox" id="eis_' + k + '"> ' + escapeHtml(v[0]) + '</label>').join('');
+  document.querySelectorAll('#eisenGrid input').forEach(c => c.addEventListener('change', updateLivePreview));
+  document.getElementById('profielContext').addEventListener('input', updateLivePreview);
+  pgLoad(); applyProfile(PG.actief); updateDataSafetyUI();
+}
+document.addEventListener('DOMContentLoaded', initProfielen);
+
+// ── Versiebeheer ──
+function renderChangelog() {
+  document.getElementById('clBody').innerHTML = CHANGELOG.map((v, i) =>
+    '<div class="cl-entry"><div><span class="cl-ver">v' + escapeHtml(v.versie) + '</span><span class="cl-date">' + escapeHtml(v.datum) + '</span>' +
+    (i === 0 ? '<span class="cl-current">HUIDIG</span>' : '') + '</div><ul>' +
+    v.wijzigingen.map(w => '<li><span class="cl-tag">' + escapeHtml(w[0]) + '</span>' + escapeHtml(w[1]) + '</li>').join('') + '</ul></div>').join('');
+}
+function openChangelog() { renderChangelog(); document.getElementById('clOverlay').classList.add('visible'); }
+function closeChangelog() { document.getElementById('clOverlay').classList.remove('visible'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeChangelog(); });
+document.getElementById('versionLabel').textContent = APP_VERSION;
+setDoelgroepMode('hier');
+
+// ── Konami-code easter egg: ↑↑↓↓←→←→BA vult het formulier met een absurd KAM-voorbeeld.
+// Op mobiel (geen toetsenbord): dezelfde reeks als swipe-gebaar, afgesloten met een dubbele tik voor "BA". ──
+(function () {
+  const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+  let buffer = [];
+  function feed(key) {
+    buffer.push(key);
+    buffer = buffer.slice(-KONAMI.length);
+    if (buffer.length === KONAMI.length && buffer.every((k, i) => k === KONAMI[i])) {
+      triggerKonami();
+      buffer = [];
+    }
+  }
+  document.addEventListener('keydown', (e) => {
+    feed(e.key.length === 1 ? e.key.toLowerCase() : e.key);
+  });
+
+  // Touch/swipe-versie voor smartphones: swipe ↑↑↓↓←→←→, gevolgd door een dubbele tik (= "BA").
+  let touchStartX = 0, touchStartY = 0, lastTapTime = 0;
+  const SWIPE_MIN_PX = 40;
+  document.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
+    const absX = Math.abs(dx), absY = Math.abs(dy);
+
+    if (absX < SWIPE_MIN_PX && absY < SWIPE_MIN_PX) {
+      // Geen swipe, maar een korte tik — telt mee als B dan A bij twee snelle tikken achter elkaar.
+      const now = Date.now();
+      if (now - lastTapTime < 400) { feed('b'); feed('a'); lastTapTime = 0; }
+      else { lastTapTime = now; }
+      return;
+    }
+    if (absX > absY) feed(dx > 0 ? 'ArrowRight' : 'ArrowLeft');
+    else feed(dy > 0 ? 'ArrowDown' : 'ArrowUp');
+  }, { passive: true });
+
+  function spawnEmojiBurst() {
+    const emojis = ['🌿','🪴','🚨','📋','✅'];
+    for (let i = 0; i < 14; i++) {
+      const span = document.createElement('span');
+      span.className = 'konami-emoji';
+      span.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      span.style.left = Math.random() * 100 + 'vw';
+      span.style.animationDelay = (Math.random() * 0.6) + 's';
+      span.style.fontSize = (16 + Math.random() * 18) + 'px';
+      document.body.appendChild(span);
+      setTimeout(() => span.remove(), 3200);
+    }
+  }
+
+  // Statische scenarioset — willekeurig gekozen, direct beschikbaar zonder API-sleutel.
+  const KONAMI_SCENARIOS = [
+    { contentType: 'procesbeschrijving', fileType: 'Word', toon: 'urgent', doelgroep: 'directie', lengte: 'middel', variaties: '1',
+      onderwerp: 'Noodprotocol voor een piratenschip dat per ongeluk is aangemeld bij de Kamer van Koophandel',
+      context: 'Schrijf alsof dit een echte juridische kwestie is: behandel walvisvaart-vergunningen, een ontevreden papegaai-aandeelhouder, en een deadline vóór het volgende bestuursoverleg.',
+      toastTitle: '🏴‍☠️ Konami-code geactiveerd', toastSub: 'Protocol: "Het Piratenschip-BV-incident"' },
+    { contentType: 'script', fileType: 'powershell', toon: 'technisch', doelgroep: "collega's", lengte: 'kort', variaties: '1',
+      onderwerp: 'Script dat automatisch detecteert of een kantoorkonijn de serverkabels heeft doorgeknaagd',
+      context: 'Schrijf de logica alsof het een serieuze monitoringtool is, met loglevels, een alertmail en een grappig gedetailleerde "konijn-detectie-drempelwaarde".',
+      toastTitle: '🐇 Konami-code geactiveerd', toastSub: 'Script: "Konijn-vs-Kabel Monitor"' },
+    { contentType: 'presentatie', fileType: 'Powerpoint', toon: 'overtuigend', doelgroep: 'beleidsmaker', lengte: 'middel', variaties: '1',
+      onderwerp: 'Pitch voor het verplaatsen van de maan één parkeerplaats naar links, ten behoeve van betere getijden',
+      context: 'Presenteer met overtuigende bullet-slides, een (fictieve) kosten-batenanalyse en een roadmap in kwartalen.',
+      toastTitle: '🌕 Konami-code geactiveerd', toastSub: 'Pitch: "Project Maanverschuiving"' },
+    { contentType: 'matrix', fileType: 'Excel', toon: 'formeel', doelgroep: 'management', lengte: 'middel', variaties: '1',
+      onderwerp: 'Risicomatrix voor een kantoorplant die aanspraak lijkt te maken op een leidinggevende functie',
+      context: 'Neem kolommen op voor waarschijnlijkheid, impact, en een "escalatiepad" richting HR, volledig serieus geformuleerd.',
+      toastTitle: '🌿 Konami-code geactiveerd', toastSub: 'Matrix: "De Ambitieuze Ficus"' },
+    { contentType: 'e-mail', fileType: 'markdown', toon: 'empathisch', doelgroep: 'extern', lengte: 'kort', variaties: '1',
+      onderwerp: 'Verontschuldiging aan de buren omdat de bedrijfsdrone per ongeluk de was heeft binnengehaald',
+      context: 'Schrijf oprecht meelevend, bied een concreet herstelplan aan, en vermijd elke vorm van bagatellisering.',
+      toastTitle: '🚁 Konami-code geactiveerd', toastSub: 'E-mail: "Het Wasgoed-incident"' },
+    { contentType: 'analyse', fileType: 'PowerBI', toon: 'neutraal', doelgroep: 'directie', lengte: 'middel', variaties: '1',
+      onderwerp: 'Data-analyse naar de correlatie tussen maandagochtend-vergaderingen en verdwenen lepels in de kantine',
+      context: 'Behandel als een serieus datavraagstuk met hypotheses, een fictieve steekproefgrootte en een aanbeveling.',
+      toastTitle: '🥄 Konami-code geactiveerd', toastSub: 'Analyse: "Het Grote Lepel-mysterie"' },
+    { contentType: 'ontwerp', fileType: '.html', toon: 'informeel', doelgroep: 'prive', lengte: 'kort', variaties: '1',
+      onderwerp: 'Ontwerp voor een interactief dashboard dat bijhoudt hoe vaak de kantoorkat op het toetsenbord loopt',
+      context: 'Beschrijf een speelse UI met een live-teller, een "chaosniveau"-indicator en een knop om de kat te "resetten".',
+      toastTitle: '🐈 Konami-code geactiveerd', toastSub: 'Ontwerp: "Kattenklets Dashboard"' },
+    { contentType: 'verslag', fileType: 'Word', toon: 'urgent', doelgroep: "collega's", lengte: 'middel', variaties: '1',
+      onderwerp: 'Verslag van een spoedoverleg over een liftmuziekje dat inmiddels drie weken op herhaling staat',
+      context: 'Schrijf als een kort crisisverslag: tijdlijn, impact op het moreel, en een actieplan met deadline.',
+      toastTitle: '🎵 Konami-code geactiveerd', toastSub: 'Verslag: "Operatie Stille Lift"' },
+    { contentType: 'template', fileType: 'tekst_bestand', toon: 'technisch', doelgroep: 'developer', lengte: 'kort', variaties: '1',
+      onderwerp: 'Sjabloon voor bugrapporten waarbij de "bug" telkens een verdwaalde huisspin in de serverruimte blijkt',
+      context: 'Maak het sjabloon herbruikbaar met velden voor spin-locatie, geschatte pootafstand en risiconiveau.',
+      toastTitle: '🕷️ Konami-code geactiveerd', toastSub: 'Sjabloon: "Spin-of-Bug Rapportage"' },
+    { contentType: 'afbeelding', fileType: 'plattegrond_afbeelding', toon: 'overtuigend', doelgroep: '', lengte: 'kort', variaties: '1',
+      onderwerp: 'Conceptvisual van een kantoorplattegrond volledig heringericht rond het welzijn van de vergaderzaal-cactus',
+      context: 'Beschrijf de visuele stijl: warm, plantgericht, met de cactus letterlijk in het middelpunt van elk bureau-eiland.',
+      toastTitle: '🌵 Konami-code geactiveerd', toastSub: 'Visual: "Cactus-Centric Office"' }
+  ];
+
+  function applyKonamiScenario(s) {
+    document.getElementById('contentType').value = s.contentType;
+    const fileTypeSel = document.getElementById('fileType');
+    fileTypeSel.value = s.fileType; fileTypeTouched = true;
+    document.getElementById('onderwerp').value = s.onderwerp;
+    document.getElementById('toon').value = s.toon;
+    applyDoelgroepValue(s.doelgroep || '');
+    document.getElementById('context').value = s.context || '';
+    const lengte = ['kort','middel','uitgebreid'].includes(s.lengte) ? s.lengte : 'kort';
+    document.querySelector(`input[name="lengte"][value="${lengte}"]`).checked = true;
+    const variaties = ['1','3'].includes(String(s.variaties)) ? String(s.variaties) : '1';
+    document.querySelector(`input[name="variaties"][value="${variaties}"]`).checked = true;
+
+    setFieldError('contentType', false); setFieldError('fileType', false); setFieldError('onderwerp', false);
+    updateImagePromptNotice();
+    updateGenerateButtonState();
+    updateLivePreview();
+    document.getElementById('form-grid-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function showKonamiToast(title, sub) {
+    document.querySelectorAll('.konami-toast').forEach(t => t.remove());
+    const toast = document.createElement('div');
+    toast.className = 'konami-toast';
+    toast.innerHTML = escapeHtml(title) + '<small>' + escapeHtml(sub || '') + '</small>';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3200);
+  }
+
+  // Vraagt de AI (via de ingevulde providersleutel) om een eigen, uniek absurd scenario te bedenken — vrij van onderwerp, niet per se KAM-gerelateerd.
+  async function generateAIKonamiScenario(apiKeyVal) {
+    const sys = `Je bent een grenzeloos creatieve brainstormassistent voor een easter egg in een prompt-tool. Bedenk één compleet ABSURD, onverwacht scenario — kies zelf een willekeurig domein (bijv. ruimtevaart, dieren, keuken, sport, bureaucratie, fantasie, gadgets — niet per se kantoor of kwaliteitsmanagement) en formuleer het alsof het serieus, professioneel jargon is voor dat domein. Wees zo origineel en gevarieerd mogelijk — vermijd voor de hand liggende clichés en herhaal geen eerdere thema's. Lever uitsluitend dit JSON-formaat:
+{
+  "contentType": "rapportage" | "tekst" | "verslag" | "procesbeschrijving" | "checklist_werkinstructie" | "presentatie" | "script" | "analyse" | "e-mail" | "template" | "matrix" | "ontwerp" | "afbeelding",
+  "fileType": "Excel" | "Word" | "Powerpoint" | "PowerBI" | ".html" | "powershell" | "markdown" | "tekst_bestand" | "plattegrond_afbeelding",
+  "onderwerp": "korte titel van het absurde scenario",
+  "toon": "formeel" | "informeel" | "technisch" | "overtuigend" | "neutraal" | "urgent" | "empathisch",
+  "doelgroep": "management" | "collega's" | "extern" | "developer" | "beleidsmaker" | "directie" | "prive" | "",
+  "context": "1-2 zinnen extra instructie die de absurditeit onderbouwt",
+  "lengte": "kort" | "middel" | "uitgebreid",
+  "titel": "korte, grappige titel voor een meldingsvenster (max 6 woorden)"
+}
+Lever puur JSON, geen uitleg erbuiten.`;
+    let jsonText = '';
+    const useLight = document.getElementById('useLightModel')?.checked;
+    const fn = (useLight && PROVIDERS[activeProvider].callLight) || PROVIDERS[activeProvider].call;
+    await fn(apiKeyVal, sys, 'Verras me.', chunk => { jsonText += chunk; });
+    const parsed = parseJsonResponse(jsonText, 'Geen geldige JSON van de AI ontvangen.');
+    return {
+      contentType: parsed.contentType, fileType: parsed.fileType, onderwerp: parsed.onderwerp,
+      toon: parsed.toon, doelgroep: parsed.doelgroep, context: parsed.context, lengte: parsed.lengte, variaties: '1',
+      toastTitle: '🤖 AI-editie geactiveerd', toastSub: parsed.titel || parsed.onderwerp
+    };
+  }
+
+  async function triggerKonami() {
+    const apiKeyVal = document.getElementById('apiKey')?.value.trim();
+    let scenario = null;
+
+    if (apiKeyVal) {
+      showKonamiToast('🎲 Konami-code geactiveerd', 'AI bedenkt een absurd scenario...');
+      try {
+        scenario = await generateAIKonamiScenario(apiKeyVal);
+      } catch (e) {
+        scenario = null; // val stil terug op de statische set
+      }
+    }
+    if (!scenario) {
+      scenario = KONAMI_SCENARIOS[Math.floor(Math.random() * KONAMI_SCENARIOS.length)];
+    }
+
+    applyKonamiScenario(scenario);
+    spawnEmojiBurst();
+    showKonamiToast(scenario.toastTitle || '🌿 Konami-code geactiveerd', scenario.toastSub || scenario.onderwerp);
+  }
+})();
+
+const AUDIT_KEY = 'pg_use_audit';
+const savedAudit = localStorage.getItem(AUDIT_KEY);
+document.getElementById('useAudit').checked = savedAudit === null ? true : savedAudit === '1';
+document.getElementById('useAudit').addEventListener('change', e => {
+  localStorage.setItem(AUDIT_KEY, e.target.checked ? '1' : '0');
+});
+
+const LIGHT_MODEL_KEY = 'pg_use_light_model';
+document.getElementById('useLightModel').checked = localStorage.getItem(LIGHT_MODEL_KEY) === '1';
+document.getElementById('useLightModel').addEventListener('change', e => {
+  localStorage.setItem(LIGHT_MODEL_KEY, e.target.checked ? '1' : '0');
+});
+
+renderHistory();
+
+// ── Sidebar in-/uitklappen ──
+const SIDEBAR_KEY = 'pg_sidebar_collapsed';
+const sidebarEl = document.getElementById('sidebar');
+const isMobile = () => window.matchMedia('(max-width: 880px)').matches;
+
+function updateToggleIcon() {
+  const line = document.getElementById('sidebarToggleLine');
+  const collapsed = sidebarEl.classList.contains('collapsed');
+  if (line) line.style.transform = collapsed ? 'translateX(6px)' : 'translateX(0)';
+  const btn = document.getElementById('sidebarToggle');
+  if (btn) btn.setAttribute('aria-label', collapsed ? 'Zijbalk uitklappen' : 'Zijbalk inklappen');
+}
+
+function applySidebarState() {
+  if (isMobile()) { sidebarEl.classList.remove('collapsed'); updateToggleIcon(); return; }
+  sidebarEl.classList.toggle('collapsed', localStorage.getItem(SIDEBAR_KEY) === '1');
+  updateToggleIcon();
+}
+applySidebarState();
+
+document.getElementById('sidebarToggle').addEventListener('click', () => {
+  if (isMobile()) {
+    sidebarEl.classList.remove('mobile-open');
+    return;
+  }
+  const collapsed = !sidebarEl.classList.contains('collapsed');
+  sidebarEl.classList.toggle('collapsed', collapsed);
+  localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0');
+  updateToggleIcon();
+});
+
+document.getElementById('sidebarOpenBtn').addEventListener('click', () => {
+  sidebarEl.classList.add('mobile-open');
+});
+
+document.addEventListener('click', (e) => {
+  if (!isMobile()) return;
+  if (!sidebarEl.classList.contains('mobile-open')) return;
+  if (sidebarEl.contains(e.target) || e.target.closest('#sidebarOpenBtn')) return;
+  sidebarEl.classList.remove('mobile-open');
+});
+
+window.addEventListener('resize', applySidebarState);
+
+// ── Licht / donker thema ──
+const THEME_KEY = 'pg_theme';
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeSwitchLabel').textContent = theme === 'dark' ? 'Donker thema' : 'Licht thema';
+  document.querySelector('#themeSwitch .knob').textContent = theme === 'dark' ? '🌙' : '☀';
+}
+const savedTheme = localStorage.getItem(THEME_KEY) || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+applyTheme(savedTheme);
+
+document.getElementById('themeSwitch').addEventListener('click', () => {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+});
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('modeManual').classList.toggle('active', mode === 'manual');
+  document.getElementById('modeAuto').classList.toggle('active', mode === 'auto');
+  document.getElementById('autopilotPanel').classList.toggle('visible', mode === 'auto');
+}
+
+async function analyzeAutopilot() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const goal = document.getElementById('autopilotInput').value.trim();
+  clearError();
+  if (!apiKey || !goal) { showError('⚠ API sleutel en einddoel zijn verplicht.'); return; }
+
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = true;
+  btn.textContent = 'Analyseren...';
+
+  const systemInstruction = `Je bent een analytische KAM-assistent. Analyseer het doel en extraheer parameters in dit JSON formaat:
+{
+  "contentType": "rapportage" | "tekst" | "verslag" | "procesbeschrijving" | "presentatie" | "script" | "analyse" | "e-mail",
+  "fileType": "Excel" | "Word" | "Powerpoint" | "PowerBI" | ".html" | "powershell" | "markdown" | "tekst_bestand" | "chat_feedback" | "plattegrond_afbeelding",
+  "onderwerp": "onderwerp",
+  "toon": "formeel" | "informeel" | "technisch" | "overtuigend" | "neutraal",
+  "doelgroep": "management" | "collega's" | "extern" | "developer" | "directie" | "prive" (management/collega's/directie worden automatisch vertaald naar een positie op de hiërarchische schuif; extern/developer/prive blijven losse opties),
+  "context": "context",
+  "lengte": "kort" | "middel" | "uitgebreid",
+  "variaties": "1" | "3",
+  "uitleg": "Korte motivatie over je bestandstype keuze."
+}
+Lever puur JSON.`;
+
+  try {
+    let jsonText = '';
+    const useLight = document.getElementById('useLightModel').checked;
+    const fn = (useLight && PROVIDERS[activeProvider].callLight) || PROVIDERS[activeProvider].call;
+    await fn(apiKey, systemInstruction, `Doel: ${goal}`, chunk => { jsonText += chunk; });
+    const parsed = parseJsonResponse(jsonText, 'De AI leverde geen geldige JSON terug bij de analyse.');
+
+    if (parsed.contentType) document.getElementById('contentType').value = parsed.contentType;
+    if (parsed.fileType) { document.getElementById('fileType').value = parsed.fileType; fileTypeTouched = true; }
+    if (parsed.onderwerp) document.getElementById('onderwerp').value = parsed.onderwerp;
+    if (parsed.toon) document.getElementById('toon').value = parsed.toon;
+    if (parsed.doelgroep) applyDoelgroepValue(parsed.doelgroep);
+    if (parsed.context) document.getElementById('context').value = parsed.context;
+    
+    const lengte = ['kort','middel','uitgebreid'].includes(parsed.lengte) ? parsed.lengte : 'kort';
+    document.querySelector(`input[name="lengte"][value="${lengte}"]`).checked = true;
+    const variaties = ['1','3'].includes(String(parsed.variaties)) ? String(parsed.variaties) : '1';
+    document.querySelector(`input[name="variaties"][value="${variaties}"]`).checked = true;
+
+    setFieldError('contentType', false); setFieldError('fileType', false); setFieldError('onderwerp', false);
+    updateImagePromptNotice();
+    updateGenerateButtonState();
+
+    const resultDiv = document.getElementById('autopilotResult');
+    resultDiv.innerHTML = `<strong>✓ Parameters geconfigureerd!</strong><br><span style="font-size:12px;opacity:0.95;">Strategie: ${escapeHtml(parsed.uitleg)}</span><br><span style="font-size:12px;opacity:0.8;">Controleer de ingevulde velden hieronder vóór je genereert.</span>`;
+    resultDiv.classList.add('visible');
+    document.getElementById('form-grid-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch(e) {
+    showError('Autopiloot configuratiefout: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> Analyseer &amp; vul parameters in`;
+  }
+}
+
+async function generatePrompt() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const contentType = document.getElementById('contentType').value;
+  const fileType = document.getElementById('fileType').value;
+  const onderwerp = document.getElementById('onderwerp').value.trim();
+  const toon = document.getElementById('toon').value;
+  const doelgroep = document.getElementById('doelgroep').value;
+  const context = document.getElementById('context').value.trim();
+  const lengte = document.querySelector('input[name="lengte"]:checked').value;
+  const variaties = parseInt(document.querySelector('input[name="variaties"]:checked').value);
+  const contextControl = getContextControl();
+
+  clearError();
+  ['contentType','fileType','onderwerp'].forEach(id => setFieldError(id, false));
+  document.getElementById('apiKey').classList.remove('is-invalid');
+  const missing = [];
+  if (!apiKey) missing.push('apiKey');
+  if (!contentType) missing.push('contentType');
+  if (!fileType) missing.push('fileType');
+  if (!onderwerp) missing.push('onderwerp');
+  if (missing.length) {
+    missing.forEach(id => {
+      if (id === 'apiKey') document.getElementById('apiKey').classList.add('is-invalid');
+      else setFieldError(id, true);
+    });
+    showError('⚠ Vul alle verplichte velden (gemarkeerd met *) en de API sleutel in.');
+    document.getElementById(missing[0]).focus();
+    return;
+  }
+
+  lastParams = { contentType, fileType, onderwerp, toon, doelgroep, context, lengte, variaties, contextControl, profileId: PG.actief, dataSafety: isWerkProfiel() };
+  const genBtn = document.getElementById('generateBtn');
+  const resultBox = document.getElementById('resultBox');
+  genBtn.disabled = true;
+  genBtn.classList.add('loading');
+  
+  document.getElementById('resultSection').classList.add('visible');
+  document.getElementById('dnaSection').classList.remove('visible');
+  document.getElementById('modelSection').classList.remove('visible');
+  document.getElementById('qualityPanel').classList.remove('visible');
+  modelVariants = {};
+  modelTips = {};
+  document.querySelectorAll('.model-tab').forEach(t => t.classList.add('not-generated'));
+
+  resultBox.textContent = '';
+  resultBox.classList.add('streaming');
+  document.getElementById('variatiesToggle').style.display = 'none';
+
+  const lengteInfo = LENGTE_MAP[lengte] || LENGTE_MAP.kort;
+  const useAudit = document.getElementById('useAudit').checked;
+
+  let sysInstruction = `Je bent een elitaire AI Prompt Engineer gespecialiseerd in enterprise-architectuur. Schrijf uiterst effectieve prompts IN HET NEDERLANDS. ${lengteInfo.instructie} Houd je STRIKT aan het opgegeven tokenbudget (${lengteInfo.woorden}) per promptversie. Wees token-efficiënt: vermijd overbodige beleefdheidsfrasen, herhaling en vulwoorden, gebruik bondige instructiezinnen of bullets in plaats van uitgeschreven alinea's, en neem geen voorbeelden of uitleg op die niet functioneel bijdragen aan het resultaat. Neem in de promptekst zelf geen disclaimers, meta-uitleg over jezelf als AI, of afsluitende beleefdheidszinnen op — de prompt is bedoeld om direct als instructie te dienen voor een ander AI-model.
+
+BELANGRIJK VOOR PROMPT-ROBUUSTHEID:
+- Bouw contextbehoud en wijzigingsbeheer expliciet in wanneer de gebruikssituatie daarom vraagt.
+- Maak duidelijk welke uitgangssituatie als basis geldt en welke onderdelen niet mogen veranderen.
+- Gebruik concrete verwijzingen naar secties, versies of aangeleverde tekst; vermijd vage verwijzingen zoals 'dit', 'dat' of 'eerder' zonder referent.
+- Laat het doelmodel bij ontbrekende of ambigue informatie niet gokken wanneer de gekozen onzekerheidsregel dat verbiedt.
+- Voorkom dat een kleine vervolgwijziging onbedoeld de rest van het resultaat herschrijft.
+- Bij contextconflict: benoem het conflict en vraag om een aangewezen basisversie in plaats van zelf een eerdere versie te reconstrueren.
+- Maak geen ongefundeerde claims over feiten, bronnen, normen of bedrijfsafspraken.`;
+
+  const dataSafetyInstruction = getDataSafetyInstruction();
+  if (dataSafetyInstruction) sysInstruction += `\n\n${dataSafetyInstruction}`;
+
+  const specs = [
+    `Type: ${contentType}`,
+    `Bestandsstructuur output: geoptimaliseerd voor ${fileType}.`,
+    `Onderwerp/Scope: ${onderwerp}`,
+    `Toon: ${toon} — ${getToonInstructie(toon)}`,
+    doelgroep ? `Doelgroep: ${getDoelgroepInstructie(doelgroep)}` : null,
+    getVasteContext() ? `Vaste achtergrondcontext: ${getVasteContext()}` : null,
+    context ? `Extra restricties/context: ${context}` : null,
+    `Context- en wijzigingsbeheer: ${getContextControlInstruction()}`,
+    isWerkProfiel() ? `Vaste gegevens- en privacycontrole (profiel Werk): voer vóór verwerking altijd een controle uit op persoonsgegevens, gevoelige persoonsgegevens en gevoelige/vertrouwelijke bedrijfsgegevens; signaleer bevindingen met categorie + concrete bron/locatie, herhaal gevoelige inhoud minimaal, verzin geen bron en meld expliciet wanneer niets is gedetecteerd.` : null,
+    getEisen().length ? `Verplichte uitvoereisen (leg deze als harde eis vast in de prompt): ${getEisen().map(k => EISEN[k][1]).join(' ')}` : null,
+  ].filter(Boolean);
+  let userMsg = `Ontwerp een professionele Nederlandse prompt:\n- ${specs.join('\n- ')}`;
+
+  const auditSchema = `"audit": { "specificiteit": 1-5, "actiegericht": 1-5, "doelgroepfit": 1-5, "verbeterpunt": "één kritisch, concreet verbeterpunt — wees streng, ga niet uit van het voordeel van de twijfel" }`;
+
+  try {
+    if (variaties === 1) {
+      sysInstruction += useAudit
+        ? `\nLever ALLEEN dit strict-JSON object terug, zonder preambule, introductie of codeblocks:\n{\n  "prompt": "de volledige promptekst",\n  ${auditSchema}\n}`
+        : `\nLever ALLEEN dit strict-JSON object terug, zonder preambule, introductie of codeblocks:\n{\n  "prompt": "de volledige promptekst"\n}`;
+      let jsonText = '';
+      await PROVIDERS[activeProvider].call(apiKey, sysInstruction, userMsg, chunk => { jsonText += chunk; });
+      const parsed = parseJsonResponse(jsonText, 'De AI leverde geen geldige JSON terug. Probeer opnieuw.');
+
+      const fullText = parsed.prompt || '';
+      if (!fullText.trim()) throw new Error('Geen inhoud ontvangen van de AI. Controleer de API sleutel en probeer opnieuw.');
+      resultBox.textContent = fullText;
+      resultBox.dataset.fulltext = fullText;
+      resultBox.classList.remove('streaming');
+      saveHistory({ contentType, fileType, onderwerp, toon, doelgroep, context, lengte, variaties, contextControl, eisen: getEisen(), text: fullText, profileId: PG.actief, dataSafety: isWerkProfiel() });
+      if (useAudit) renderQualityAudit(parsed.audit); else document.getElementById('qualityPanel').classList.remove('visible');
+    } else {
+      sysInstruction += useAudit
+        ? `\nLever exact 3 functionele versies plus de audit van versie1 in dit strict-JSON, zonder preambule of codeblocks:\n{\n  "versie1": "...",\n  "versie2": "...",\n  "versie3": "...",\n  ${auditSchema}\n}`
+        : `\nLever exact 3 functionele versies in dit strict-JSON, zonder preambule of codeblocks:\n{\n  "versie1": "...",\n  "versie2": "...",\n  "versie3": "..."\n}`;
+      let jsonText = '';
+      await PROVIDERS[activeProvider].call(apiKey, sysInstruction, userMsg, chunk => { jsonText += chunk; });
+      const parsed = parseJsonResponse(jsonText, 'De AI leverde geen geldige JSON terug. Probeer opnieuw.');
+
+      currentVariaties = [parsed.versie1, parsed.versie2, parsed.versie3];
+      document.getElementById('variatiesToggle').style.display = 'grid';
+      resultBox.textContent = currentVariaties[0];
+      resultBox.dataset.fulltext = currentVariaties[0];
+      resultBox.dataset.varIdx = '0';
+      resultBox.classList.remove('streaming');
+
+      saveHistory({ contentType, fileType, onderwerp, toon, doelgroep, context, lengte, variaties, contextControl, eisen: getEisen(), text: currentVariaties[0], profileId: PG.actief, dataSafety: isWerkProfiel() });
+      document.getElementById('dnaSection').classList.add('visible');
+      runDnaDiff();
+      if (useAudit) renderQualityAudit(parsed.audit); else document.getElementById('qualityPanel').classList.remove('visible');
+    }
+    document.getElementById('modelSection').classList.add('visible');
+  } catch (e) {
+    showError('Generatieproces mislukt: ' + e.message);
+    resultBox.classList.remove('streaming');
+  } finally {
+    genBtn.disabled = false;
+    genBtn.classList.remove('loading');
+  }
+}
+
+// Robuuste JSON-extractie: strip codeblokken en pak, als vangnet, alles tussen de
+// eerste { en de laatste } — vangt gevallen op waarin het model per ongeluk
+// tekst vóór of na het JSON-object toevoegt ondanks de instructie dat niet te doen.
+function parseJsonResponse(rawText, errorMessage) {
+  const clean = rawText.replace(/```json|```/g, '').trim();
+  try { return JSON.parse(clean); } catch(e) { /* val terug op extractie */ }
+  const start = clean.indexOf('{');
+  const end = clean.lastIndexOf('}');
+  if (start !== -1 && end !== -1 && end > start) {
+    try { return JSON.parse(clean.slice(start, end + 1)); } catch(e) { /* geeft hieronder de foutmelding */ }
+  }
+  throw new Error(errorMessage);
+}
+
+function escapeHtml(str) {
+  if (str === undefined || str === null) return '';
+  return String(str).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+function renderQualityAudit(audit) {
+  const panel = document.getElementById('qualityPanel');
+  const content = document.getElementById('qualityContent');
+  panel.classList.add('visible');
+  if (!audit) { content.textContent = 'Geen auditgegevens ontvangen van de AI.'; return; }
+  const clampScore = v => {
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.min(5, Math.max(0, n)) : null;
+  };
+  const dims = [
+    { label: 'Specificiteit binnen scope', val: clampScore(audit.specificiteit) },
+    { label: 'Actiegerichtheid / Outputsturing', val: clampScore(audit.actiegericht) },
+    { label: 'Doelgroep-fitment', val: clampScore(audit.doelgroepfit) }
+  ];
+  const tip = (audit.verbeterpunt && String(audit.verbeterpunt).trim()) || 'Geen verbeterpunt ontvangen van de AI.';
+  content.innerHTML = `
+    <div class="quality-scores">
+      ${dims.map(d => `
+        <div class="score-item">
+          <div class="score-name">${escapeHtml(d.label)}</div>
+          <div class="score-bar-wrap"><div class="score-bar" style="width:${d.val === null ? 0 : (d.val/5)*100}%"></div></div>
+          <div class="score-val">${d.val === null ? '–' : d.val}/5</div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="quality-tip">💡 <strong>Audit-advies:</strong> ${escapeHtml(tip)}</div>`;
+}
+
+
+function toggleRefine() {
+  const panel = document.getElementById('refinePanel');
+  panel.classList.toggle('visible');
+}
+
+async function refinePrompt() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const feedback = document.getElementById('refineInput').value.trim();
+  const resultBox = document.getElementById('resultBox');
+  if (!feedback || !apiKey) return;
+
+  const current = resultBox.dataset.fulltext;
+  const kaderInfo = lastParams
+    ? `Houd je binnen dit oorspronkelijke kader tenzij de feedback expliciet vraagt dit te wijzigen: type "${lastParams.contentType}", bestandstype "${lastParams.fileType}", doelgroep "${lastParams.doelgroep || 'onbepaald'}", toon "${lastParams.toon}", tokenbudget "${lastParams.lengte}".`
+    : '';
+  const consistencyInfo = lastParams?.contextControl
+    ? `Contextbeheer van de oorspronkelijke prompt: ${lastParams.contextControl.mode || 'iterative'}; contextanker=${lastParams.contextControl.anchor !== false}; wijzigingsscope=${lastParams.contextControl.changeScope !== false}; behoud rest=${lastParams.contextControl.preserveRest !== false}; herstartprotocol=${lastParams.contextControl.restart !== false}; brongebonden=${!!lastParams.contextControl.sourceBoundary}.`
+    : 'Behoud de bestaande context- en wijzigingsregels van de prompt.';
+  const dataSafetyInfo = isWerkProfiel()
+    ? 'Voeg toe of behoud uitsluitend voor het profiel Werk de gegevens- en privacycontrole: scan aangeleverde informatie op persoonsgegevens, gevoelige persoonsgegevens en gevoelige/vertrouwelijke bedrijfsgegevens; signaleer bevindingen met categorie en concrete bron/locatie; verzin geen bron; herhaal gevoelige inhoud minimaal; meld expliciet wanneer niets is gedetecteerd.'
+    : '';
+  const dataSafetyRetention = isWerkProfiel()
+    ? ' Behoud of voeg de gegevens- en privacycontrole toe omdat het huidige profiel Werk is.'
+    : ' Verwijder iedere gegevens- en privacycontrole uit de prompt omdat het huidige profiel niet Werk is.';
+  const sys = `Pas de meegegeven prompt naadloos aan op basis van de feedback. ${kaderInfo} ${consistencyInfo} ${dataSafetyInfo}${dataSafetyRetention} Wijzig uitsluitend wat de feedback expliciet vraagt. Behoud alle overige instructies en de contextbeheerregels. Als de feedback ambigu is, interpreteer deze niet ruimer dan noodzakelijk. Lever puur en alleen de schone prompt op zonder inleiding of markdown codeblocks.`;
+  resultBox.textContent = '';
+  resultBox.classList.add('streaming');
+
+  try {
+    let text = '';
+    await PROVIDERS[activeProvider].call(apiKey, sys, `Bestaande Prompt:\n${current}\n\nGewenste modificatie:\n${feedback}`, chunk => {
+      text += chunk;
+      resultBox.textContent = text;
+      resultBox.dataset.fulltext = text;
+    });
+    resultBox.classList.remove('streaming');
+    document.getElementById('refineInput').value = '';
+  } catch(e) { showError(e.message); }
+}
+
+let dnaA = 0, dnaB = 1;
+function pickDna(side, idx, el) {
+  if (side === 'a') { dnaA = idx; document.querySelectorAll('.active-a').forEach(b => b.classList.remove('active-a')); el.classList.add('active-a'); }
+  else { dnaB = idx; document.querySelectorAll('.active-b').forEach(b => b.classList.remove('active-b')); el.classList.add('active-b'); }
+  runDnaDiff();
+}
+
+function runDnaDiff() {
+  const textA = currentVariaties[dnaA] || '';
+  const textB = currentVariaties[dnaB] || '';
+  document.getElementById('dnaHeadA').textContent = `Insteek Variant ${String.fromCharCode(65 + dnaA)}`;
+  document.getElementById('dnaHeadB').textContent = `Insteek Variant ${String.fromCharCode(65 + dnaB)}`;
+  const wordsA = textA.match(/\S+|\s+/g) || [];
+  const wordsB = textB.match(/\S+|\s+/g) || [];
+  const setA = new Set(wordsA.map(w => w.toLowerCase().trim()));
+  const setB = new Set(wordsB.map(w => w.toLowerCase().trim()));
+  
+  document.getElementById('dnaBodyA').innerHTML = wordsA.map(w => !setB.has(w.toLowerCase().trim()) && w.trim() ? `<span class="diff-unique-a">${w}</span>` : w).join('');
+  document.getElementById('dnaBodyB').innerHTML = wordsB.map(w => !setA.has(w.toLowerCase().trim()) && w.trim() ? `<span class="diff-unique-b">${w}</span>` : w).join('');
+}
+
+async function generateModelVariants() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const source = document.getElementById('resultBox').dataset.fulltext;
+  if (!source || !apiKey) return;
+
+  const sys = `Vertaal de prompt naar 3 specifieke architecturen in strict JSON:\n{ "gemini": "...", "gemini_tip": "...", "claude": "...", "claude_tip": "...", "o1_gpt4": "...", "o1_gpt4_tip": "..." }`;
+  try {
+    let json = '';
+    const useLight = document.getElementById('useLightModel').checked;
+    const fn = (useLight && PROVIDERS[activeProvider].callLight) || PROVIDERS[activeProvider].call;
+    await fn(apiKey, sys, source, chunk => { json += chunk; });
+    const parsed = parseJsonResponse(json, 'De AI leverde geen geldige JSON terug voor de model-varianten. Probeer opnieuw.');
+    modelVariants = { gemini: parsed.gemini, claude: parsed.claude, o1_gpt4: parsed.o1_gpt4 };
+    modelTips = { gemini: parsed.gemini_tip, claude: parsed.claude_tip, o1_gpt4: parsed.o1_gpt4_tip };
+    const ontbrekend = Object.entries(modelVariants).filter(([,v]) => !v || !String(v).trim()).map(([k]) => k);
+    document.querySelectorAll('.model-tab').forEach(t => t.classList.remove('not-generated'));
+    const activeTab = document.querySelector(`.model-tab.active`) || document.querySelector('.model-tab');
+    showModelVariant(activeModelKey, activeTab);
+    if (ontbrekend.length) showError(`Let op: geen resultaat ontvangen voor: ${ontbrekend.join(', ')}. Probeer opnieuw te genereren.`);
+  } catch(e) {
+    showError('Model-varianten genereren mislukt: ' + e.message);
+  }
+}
+
+function showModelVariant(key, tab) {
+  activeModelKey = key;
+  document.querySelectorAll('.model-tab').forEach(t => t.classList.remove('active'));
+  if(tab) tab.classList.add('active');
+  const box = document.getElementById('modelBox');
+  box.textContent = modelVariants[key] || 'Klik op Genereer varianten om data te laden.';
+  const tip = document.getElementById('modelTip');
+  if(modelTips[key]) { tip.textContent = modelTips[key]; tip.style.display = 'block'; } else { tip.style.display = 'none'; }
+  document.getElementById('copyModelBtn').style.display = modelVariants[key] ? 'block' : 'none';
+}
+
+async function callGemini(apiKey, systemInstruction, prompt, onChunk, model) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model || 'gemini-3.5-flash'}:streamGenerateContent?alt=sse&key=${apiKey}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      systemInstruction: { parts: [{ text: systemInstruction }] },
+      generationConfig: { temperature: 0.5 }
+    })
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    let errMsg = `HTTP ${response.status}`;
+    try { const j = JSON.parse(errText); errMsg = j.error?.message || errMsg; } catch(e){}
+    throw new Error(errMsg);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop(); // bewaar onvolledige regel
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('data:')) continue;
+      const jsonStr = trimmed.slice(5).trim();
+      if (!jsonStr || jsonStr === '[DONE]') continue;
+      try {
+        const parsed = JSON.parse(jsonStr);
+        const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) onChunk(text);
+      } catch(e) {}
+    }
+  }
+  // verwerk eventuele resterende buffer
+  if (buffer.trim().startsWith('data:')) {
+    const jsonStr = buffer.trim().slice(5).trim();
+    try {
+      const parsed = JSON.parse(jsonStr);
+      const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) onChunk(text);
+    } catch(e) {}
+  }
+}
+
+async function callOpenAICompat(apiKey, systemInstruction, prompt, onChunk, cfg) {
+  const response = await fetch(cfg.url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: cfg.model,
+      messages: [{ role: 'system', content: systemInstruction }, { role: 'user', content: prompt }],
+      stream: true,
+      temperature: 0.5,
+    })
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    let errMsg = `HTTP ${response.status}`;
+    try { const j = JSON.parse(errText); errMsg = j.error?.message || errMsg; } catch(e){}
+    throw new Error(errMsg);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      if (line.slice(6).trim() === '[DONE]') return;
+      try { 
+        const chunk = JSON.parse(line.slice(6)).choices[0].delta.content;
+        if (chunk) onChunk(chunk);
+      } catch(e){}
+    }
+  }
+}
+
+function showVariatie(idx, tab) {
+  document.querySelectorAll('.var-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  const box = document.getElementById('resultBox');
+  box.textContent = currentVariaties[idx];
+  box.dataset.fulltext = currentVariaties[idx];
+}
+
+function getHistoryList() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch(e) { return []; }
+}
+
+function saveHistory(item) {
+  const list = getHistoryList();
+  item.ts = Date.now(); list.unshift(item); if (list.length > 10) list.pop();
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); renderHistory();
+}
+
+function renderHistory() {
+  const list = getHistoryList();
+  const el = document.getElementById('historyList'); if(!el) return;
+  document.getElementById('historySection').classList.toggle('visible', list.length > 0);
+  el.innerHTML = list.map((item, idx) => `
+    <div class="history-item" onclick="loadHistoryItem(${idx})">
+      <div>
+        <div class="history-meta">${escapeHtml(item.contentType)} ➔ ${escapeHtml(item.fileType)}</div>
+        <div class="history-subject">${escapeHtml(item.onderwerp)}</div>
+        <div class="history-preview">${escapeHtml(item.text)}</div>
+      </div>
+      <div class="history-time">${item.ts ? new Date(item.ts).toLocaleString('nl-NL', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : 'Onbekend tijdstip'}</div>
+    </div>`).join('');
+}
+
+function exportHistory() {
+  const list = getHistoryList();
+  if (!list.length) { showError('Geen historie om te exporteren.'); return; }
+  const blob = new Blob([JSON.stringify(list, null, 2)], { type: 'application/json;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `prompt_historie_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+}
+
+function importHistory(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const imported = JSON.parse(reader.result);
+      if (!Array.isArray(imported)) throw new Error('Bestand bevat geen geldige historielijst.');
+      const list = getHistoryList();
+      // Samenvoegen, dubbele items (zelfde tekst) overslaan, nieuwste eerst, max 10 bewaren
+      const existingTexts = new Set(list.map(i => i.text));
+      const merged = [...imported.filter(i => i && i.text && !existingTexts.has(i.text)), ...list];
+      merged.sort((a,b) => (b.ts||0) - (a.ts||0));
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(merged.slice(0, 10)));
+      renderHistory();
+    } catch(e) {
+      showError('Importeren mislukt: ' + e.message);
+    } finally {
+      event.target.value = '';
+    }
+  };
+  reader.readAsText(file);
+}
+
+function loadHistoryItem(idx) {
+  const list = getHistoryList();
+  const item = list[idx];
+  if (!item) return;
+  if (item.profileId && PG.profielen[item.profileId]) applyProfile(item.profileId);
+  document.getElementById('contentType').value = item.contentType || '';
+  document.getElementById('fileType').value = item.fileType || '';
+  fileTypeTouched = true;
+  document.getElementById('onderwerp').value = item.onderwerp || '';
+  document.getElementById('context').value = item.context || '';
+  if (item.toon) document.getElementById('toon').value = item.toon;
+  setEisen(item.eisen);
+  document.getElementById('doelgroepList').value = '';
+  document.getElementById('doelgroepSlider').value = 50;
+  setDoelgroepMode('hier');
+  if (item.doelgroep) applyDoelgroepValue(item.doelgroep);
+  if (item.lengte) {
+    const lengteRadio = document.querySelector(`input[name="lengte"][value="${item.lengte}"]`);
+    if (lengteRadio) lengteRadio.checked = true;
+  }
+  if (item.variaties) {
+    const variatiesRadio = document.querySelector(`input[name="variaties"][value="${item.variaties}"]`);
+    if (variatiesRadio) variatiesRadio.checked = true;
+  }
+  if (item.contextControl) {
+    const c = item.contextControl;
+    document.getElementById('promptUseMode').value = c.mode || 'iterative';
+    document.getElementById('ambiguityMode').value = c.ambiguity || 'ask';
+    document.getElementById('ctxAnchor').checked = c.anchor !== false;
+    document.getElementById('changeScope').checked = c.changeScope !== false;
+    document.getElementById('preserveRest').checked = c.preserveRest !== false;
+    document.getElementById('restartProtocol').checked = c.restart !== false;
+    document.getElementById('sourceBoundary').checked = !!c.sourceBoundary;
+  }
+  const historyDataSafety = typeof item.dataSafety === 'boolean' ? item.dataSafety : isWerkProfiel();
+  lastParams = { contentType: item.contentType, fileType: item.fileType, onderwerp: item.onderwerp, toon: item.toon, doelgroep: item.doelgroep, context: item.context, lengte: item.lengte, variaties: item.variaties, contextControl: item.contextControl, profileId: item.profileId || PG.actief, dataSafety: historyDataSafety };
+  const box = document.getElementById('resultBox');
+  box.textContent = item.text; box.dataset.fulltext = item.text;
+  document.getElementById('resultSection').classList.add('visible');
+  document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+  document.querySelectorAll('.field-error').forEach(el => el.classList.remove('visible'));
+  updateImagePromptNotice();
+  updateGenerateButtonState();
+  updateLivePreview();
+  document.getElementById('form-grid-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function clearHistory() {
+  const list = getHistoryList();
+  if (!list.length) return;
+  if (!confirm(`Weet je zeker dat je alle ${list.length} opgeslagen prompt(s) uit de geschiedenis wilt verwijderen? Dit kan niet ongedaan worden gemaakt. Overweeg eerst te exporteren.`)) return;
+  localStorage.removeItem(HISTORY_KEY); renderHistory();
+}
+function showError(m) { const e = document.getElementById('errorMsg'); e.textContent = m; e.classList.add('visible'); }
+function clearError() { document.getElementById('errorMsg').classList.remove('visible'); }
+
+function stripMarkdown(text) {
+  return text
+    .replace(/```[\s\S]*?```/g, m => m.replace(/```/g, '').trim()) // codeblokken: hekjes weg, inhoud behouden
+    .replace(/`([^`]+)`/g, '$1')                  // inline code
+    .replace(/^#{1,6}\s+/gm, '')                  // kopjes
+    .replace(/\*\*(.+?)\*\*/g, '$1')               // vetgedrukt
+    .replace(/__(.+?)__/g, '$1')                   // vetgedrukt
+    .replace(/\*(.+?)\*/g, '$1')                   // cursief
+    .replace(/_(.+?)_/g, '$1')                     // cursief
+    .replace(/^\s*[-*+]\s+/gm, '• ')               // bullets naar simpel bolletje
+    .replace(/^\s*\d+\.\s+/gm, m => m)             // genummerde lijsten laten staan
+    .replace(/^>\s?/gm, '')                        // quote-tekens
+    .replace(/\[(.+?)\]\((.+?)\)/g, '$1 ($2)')     // links
+    .trim();
+}
+
+// Robuust kopiëren: gebruikt de moderne Clipboard API waar beschikbaar (https/secure context),
+// en valt anders terug op de klassieke execCommand-methode. Dit is nodig omdat
+// navigator.clipboard stilletjes ontbreekt op mobiel wanneer het bestand lokaal (file://)
+// of over onbeveiligde http wordt geopend — zonder fallback lijkt de knop dan niets te doen.
+async function copyToClipboard(text) {
+  if (!text) return false;
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) { /* val terug op onderstaande methode */ }
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '0';
+    ta.style.left = '-9999px';
+    ta.style.fontSize = '16px'; // voorkomt in-/uitzoomen op iOS
+    document.body.appendChild(ta);
+    const prevFocus = document.activeElement;
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, text.length); // vereist door iOS Safari
+    const success = document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (prevFocus && prevFocus.focus) prevFocus.focus();
+    return success;
+  } catch (e) {
+    return false;
+  }
+}
+
+function copyPromptPlain() {
+  const text = document.getElementById('resultBox').dataset.fulltext;
+  if (!text) return;
+  const btn = document.getElementById('copyPlainBtn');
+  const origHTML = btn.innerHTML;
+  copyToClipboard(stripMarkdown(text)).then(ok => {
+    if (ok) {
+      btn.textContent = '✓ Gekopieerd zonder opmaak!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.innerHTML = origHTML; btn.classList.remove('copied'); }, 1500);
+    } else {
+      showError('Kopiëren naar klembord is niet gelukt op dit toestel. Selecteer en kopieer de tekst handmatig.');
+    }
+  });
+}
+
+function copyPrompt() {
+  const text = document.getElementById('resultBox').dataset.fulltext;
+  if (!text) return;
+  const btn = document.getElementById('copyBtn');
+  const origHTML = btn.innerHTML;
+  copyToClipboard(text).then(ok => {
+    if (ok) {
+      btn.textContent = '✓ Gekopieerd naar klembord!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.innerHTML = origHTML; btn.classList.remove('copied'); }, 1500);
+    } else {
+      showError('Kopiëren naar klembord is niet gelukt op dit toestel. Selecteer en kopieer de tekst handmatig.');
+    }
+  });
+}
+
+function copyModelPrompt() {
+  const text = modelVariants[activeModelKey];
+  if (!text) return;
+  const btn = document.getElementById('copyModelBtn');
+  copyToClipboard(text).then(ok => {
+    if (ok) {
+      btn.textContent = '✓ Architectuur gekopieerd!';
+      setTimeout(() => { btn.textContent = 'Kopieer variant'; }, 1500);
+    } else {
+      showError('Kopiëren naar klembord is niet gelukt op dit toestel. Selecteer en kopieer de tekst handmatig.');
+    }
+  });
+}
+
+function downloadPromptText() {
+  const text = document.getElementById('resultBox').dataset.fulltext;
+  if (!text) return;
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'prompt_architectuur.txt'; a.click();
+}
+
+// contentType, fileType en onderwerp hebben eigen listeners hierboven die naast
+// de rode rand ook de bijbehorende veldfout-tekst verbergen; apiKey heeft dat niet nodig.
+document.getElementById('apiKey').addEventListener('input', () => {
+  document.getElementById('apiKey').classList.remove('is-invalid');
+});
+
+function resetForm() {
+  document.getElementById('contentType').value = ''; document.getElementById('fileType').value = '';
+  document.getElementById('onderwerp').value = ''; document.getElementById('context').value = '';
+  document.getElementById('toon').selectedIndex = 0;
+  document.getElementById('doelgroepList').value = '';
+  document.getElementById('doelgroepSlider').value = 50;
+  setDoelgroepMode('hier');
+  document.getElementById('kort').checked = true; document.getElementById('var1').checked = true;
+  document.getElementById('autopilotInput').value = '';
+  document.getElementById('promptUseMode').value = 'iterative';
+  document.getElementById('ambiguityMode').value = 'ask';
+  document.getElementById('ctxAnchor').checked = true;
+  document.getElementById('changeScope').checked = true;
+  document.getElementById('preserveRest').checked = true;
+  document.getElementById('restartProtocol').checked = true;
+  document.getElementById('sourceBoundary').checked = false;
+  document.getElementById('autopilotResult').classList.remove('visible');
+  document.getElementById('autopilotResult').innerHTML = '';
+  document.getElementById('refineInput').value = '';
+  document.getElementById('refinePanel').classList.remove('visible');
+  document.getElementById('resultSection').classList.remove('visible');
+  document.getElementById('dnaSection').classList.remove('visible');
+  document.getElementById('modelSection').classList.remove('visible');
+  document.getElementById('qualityPanel').classList.remove('visible');
+  document.querySelectorAll('.model-tab').forEach(t => t.classList.add('not-generated'));
+  document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+  document.querySelectorAll('.field-error').forEach(el => el.classList.remove('visible'));
+  document.getElementById('imagePromptNotice').classList.remove('visible');
+  document.getElementById('fileTypeAutoHint').style.display = 'none';
+  fileTypeTouched = false;
+  currentVariaties = [];
+  modelVariants = {};
+  modelTips = {};
+  lastParams = null;
+  setMode('manual');
+  clearError();
+  updateGenerateButtonState();
+  setEisen([]);
+  applyProfile(PG.actief);
+}
+</script>
+</body>
+</html>
